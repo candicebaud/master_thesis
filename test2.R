@@ -21,48 +21,31 @@ calcul_omega <- function(W,n){
 
 
 # M
-calcul_M <- function(g_test, gamma_hat, J, n, Z, Y, W, Omega, p_j, bool_P){
+calcul_M <- function(g_test, gamma_hat, J, n, Z, Y, W, Omega, p_j, a, b){
   M = 0
   for (i in 1:n){
     for (j in 1:n){
-        M = M + (Y[i] - g_test(Z[i], J, p_j, gamma_hat, Z, bool_P))*(Y[j] - g_test(Z[j], J, p_j, gamma_hat, Z, bool_P))*Omega[i,j]}
-    }
+      M = M + (Y[i] - g_test(Z[i], J, p_j, gamma_hat, Z, a,b))*(Y[j] - g_test(Z[j], J, p_j, gamma_hat, Z, a, b))*Omega[i,j]}
+  }
   return(M)
 }
 
-create_P <- function(J, n, Z, p_j, bool){
-  if (bool == 0){
-    P = matrix(0, J, n)
-    for (j in 1:J){
-      for (i in 1:n){
-        P[j,i] = p_j(j, J, Z[i])
-      }
-    }}
-  else{
-    a = min(Z)
-    b = max(Z)
-    P = matrix(0, J, n)
-    for (j in 1:J){
-      for (i in 1:n){
-        P[j,i] = basis_a_b(j, J, Z[i], a, b, p_j)
-      }
-    }}
+create_P <- function(J, n, Z, p_j, a, b){
+  a = min(Z)
+  b = max(Z)
+  P = matrix(0, J, n)
+  for (j in 1:J){
+    for (i in 1:n){
+      P[j,i] = basis_a_b(j, J, Z[i], a, b, p_j)
+    }
+  }
   return(P)}
 
 # Compute g_hat
-g_hat <- function(z, J, p_j, gamma_hat, Z, bool_P){
-  a = min(Z)
-  b = max(Z)
+g_hat <- function(z, J, p_j, gamma_hat, Z, a, b){
   p_j_vector = rep(0, J)
-  if (bool_P == 0){
-    for (j in 1:J){
-      p_j_vector[j] = p_j(j,J,z)
-    }
-  }
-  else{
-    for (j in 1:J){
-      p_j_vector[j] = basis_a_b(j, J, z, a, b, p_j)
-    }
+  for (j in 1:J){
+    p_j_vector[j] = basis_a_b(j, J, z, a, b, p_j)
   }
   return(sum(gamma_hat*p_j_vector))
 }
@@ -115,12 +98,14 @@ basis_a_b <-function(j, J, z, a, b, p_j_0_1){
 
 
 #### Gamma program ####
-estimation_gamma <- function(n, J, W, Z, Y, p_j, bool_P){
+estimation_gamma <- function(n, J, W, Z, Y, p_j){
+  a = min(Z)
+  b = max(Z)
   #compute Omega
   Omega <- calcul_omega(W,n)
   
   #compute P
-  P <- create_P(J,n,Z,p_j,bool_P)
+  P <- create_P(J,n,Z,p_j,a,b)
   
   #compute gamma
   gamma_step = P%*%Omega%*%Y
@@ -128,16 +113,18 @@ estimation_gamma <- function(n, J, W, Z, Y, p_j, bool_P){
   gamma_hat = solve(gamma_step_invert)%*%gamma_step
 }
 
+
 #### Plot the function program ####
-plot_function_true_est <- function(x, gamma_hat, p_j_hat, true_g, Z, bool_P){
+plot_function_true_est <- function(x, gamma_hat, p_j_hat, true_g, Z){
+  a = min(Z)
+  b = max(Z)
   g_hat_on_x = rep(0, length(x))
   for (i in 1:length(x)){
-    g_hat_on_x[i] <- g_hat(x[i], J, p_j_hat, gamma_hat, Z, bool_P)
+    g_hat_on_x[i] <- g_hat(x[i], J, p_j_hat, gamma_hat, Z, a, b)
   }
   g_on_x = g(x)
   plot(x, g_hat_on_x, type = 'l', col = 'black')
   lines(x, g_on_x, type = 'l', col = 'green')
-  
 }
 
 
@@ -158,19 +145,19 @@ Y = g(Z) + eps
 
 #### Estimation #### 
 # trigonometric basis
-J = 15
-gamma_hat <- estimation_gamma(n,J,W,Z,Y,p_j_trigo_0_1, 1)
+J = 7
+gamma_hat <- estimation_gamma(n,J,W,Z,Y,p_j_trigo_0_1)
 
 x = seq(-5, 5, by = 0.1)
-plot_function_true_est(x, gamma_hat, p_j_trigo_0_1, g, Z, 1)
+plot_function_true_est(x, gamma_hat, p_j_trigo_0_1, g, Z)
 
 
 #histogram basis
 J = 5
-gamma_hat <- estimation_gamma(n,J,W,Z,Y,p_j_hist_0_1, 1)
+gamma_hat <- estimation_gamma(n,J,W,Z,Y,p_j_hist_0_1)
 
 x = seq(-5, 5, by = 0.1)
-plot_function_true_est(x, gamma_hat, p_j_hist_0_1, g, Z, 1)
+plot_function_true_est(x, gamma_hat, p_j_hist_0_1, g, Z)
 
 
 
