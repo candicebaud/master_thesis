@@ -41,6 +41,12 @@ create_P <- function(J, n, Z, p_j, a, b){
   }
   return(P)}
 
+# create P for the splines
+library(splines)
+create_P_splines <- function(Z, J){
+  return(bs(Z, degree = J, intercept = FALSE))
+}
+
 # Compute g_hat
 g_hat <- function(z, J, p_j, gamma_hat, Z, a, b){
   p_j_vector = rep(0, J)
@@ -98,14 +104,19 @@ basis_a_b <-function(j, J, z, a, b, p_j_0_1){
 
 
 #### Gamma program ####
-estimation_gamma <- function(n, J, W, Z, Y, p_j){
+estimation_gamma <- function(n, J, W, Z, Y, p_j, bool_splines){
   a = min(Z)
   b = max(Z)
   #compute Omega
   Omega <- calcul_omega(W,n)
   
   #compute P
-  P <- create_P(J,n,Z,p_j,a,b)
+  if (bool_splines == 1){
+    P <- t(create_P_splines(Z, J))
+  }
+  else{
+    P <- create_P(J,n,Z,p_j,a,b)
+  }
   
   #compute gamma
   gamma_step = P%*%Omega%*%Y
@@ -115,12 +126,17 @@ estimation_gamma <- function(n, J, W, Z, Y, p_j){
 
 
 #### Plot the function program ####
-plot_function_true_est <- function(x, gamma_hat, p_j_hat, true_g, Z){
+plot_function_true_est <- function(x, gamma_hat, p_j_hat, true_g, Z, bool_splines){
   a = min(Z)
   b = max(Z)
   g_hat_on_x = rep(0, length(x))
-  for (i in 1:length(x)){
-    g_hat_on_x[i] <- g_hat(x[i], J, p_j_hat, gamma_hat, Z, a, b)
+  if (bool_splines == 0){ 
+    for (i in 1:length(x)){
+      g_hat_on_x[i] <- g_hat(x[i], J, p_j_hat, gamma_hat, Z, a, b)
+    }}
+  else{
+    basis <- t(as.matrix(bs(x, degree = J, intercept = FALSE)))
+    g_hat_on_x <- t(gamma_hat)%*%basis
   }
   g_on_x = g(x)
   plot(x, g_hat_on_x, type = 'l', col = 'black')
@@ -143,23 +159,31 @@ eps = (a*V + eta)/sqrt(1+beta**2)
 
 Y = g(Z) + eps
 
+
+
 #### Estimation #### 
 # trigonometric basis
-J = 7
-gamma_hat <- estimation_gamma(n,J,W,Z,Y,p_j_trigo_0_1)
+J = 15
+gamma_hat <- estimation_gamma(n,J,W,Z,Y,p_j_trigo_0_1, 0)
 
 x = seq(-5, 5, by = 0.1)
-plot_function_true_est(x, gamma_hat, p_j_trigo_0_1, g, Z)
+plot_function_true_est(x, gamma_hat, p_j_trigo_0_1, g, Z, 0)
 
 
 #histogram basis
-J = 5
-gamma_hat <- estimation_gamma(n,J,W,Z,Y,p_j_hist_0_1)
+J = 15
+gamma_hat <- estimation_gamma(n,J,W,Z,Y,p_j_hist_0_1,0)
 
 x = seq(-5, 5, by = 0.1)
-plot_function_true_est(x, gamma_hat, p_j_hist_0_1, g, Z)
+plot_function_true_est(x, gamma_hat, p_j_hist_0_1, g, Z,0)
 
 
+# spline basis 
+J = 10
+gamma_hat <- estimation_gamma(n,J,W,Z,Y, empty, 1)
+
+x = seq(-5, 5, by = 0.1)
+plot_function_true_est(x, gamma_hat, empty , g, Z, 1)
 
 
 
