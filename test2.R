@@ -2,7 +2,7 @@
 
 # data generating function
 g <- function(z){
-  return (z**3)/sqrt(2)
+  return (z*exp(-z**2))
 }
 
 # Fourier transform for the normal density
@@ -145,7 +145,7 @@ plot_function_true_est <- function(x, gamma_hat, p_j_hat, true_g, Z, bool_spline
 
 
 #### Generate data ####
-n = 100
+n = 2000
 W = rnorm(n, 0, 1)
 V = rnorm(n, 0, 1)
 rhoev = 0.5
@@ -163,7 +163,7 @@ Y = g(Z) + eps
 
 #### Estimation #### 
 # trigonometric basis
-J = 15
+J = 10
 gamma_hat <- estimation_gamma(n,J,W,Z,Y,p_j_trigo_0_1, 0)
 
 x = seq(-5, 5, by = 0.1)
@@ -179,7 +179,7 @@ plot_function_true_est(x, gamma_hat, p_j_hist_0_1, g, Z,0)
 
 
 # spline basis 
-J = 10
+J = 7
 gamma_hat <- estimation_gamma(n,J,W,Z,Y, empty, 1)
 
 x = seq(-5, 5, by = 0.1)
@@ -187,7 +187,98 @@ plot_function_true_est(x, gamma_hat, empty , g, Z, 1)
 
 
 
+#### Optimization of J ####
+library(caret)
+library(splines)
+
+optimization <- function(Z, W, Y, n, vect_J_to_test, p_train, p_j, bool_splines){
+  gamma_hat_list <- vector("list", length(vect_J_to_test))
+  a = min(Z)
+  b = max(Z)
+  MSE_values <- numeric(length(vect_J_to_test))
+  
+  # split the data in training and test set
+  sampled_data <- sample_train_test(Z, Y, W, p_train)
+  Z_train <- sampled_data$Z_train
+  Y_train <- sampled_data$Y_train
+  W_train <- sampled_data$W_train
+  Z_validation <- sampled_data$Z_validation
+  Y_validation <- sampled_data$Y_validation
+  W_validation <- sampled_data$W_validation
+  n_train <- length(Z_train)
+  
+  # compute gamma_hat_train and g_hat_train for the training set
+  for (j in 1:length(vect_J_to_test)){
+    #compute gamma_hat_train
+    gamma_hat <- estimation_gamma(n_train,j,W_train,Z_train,Y_train,p_j,bool_splines)
+    gamma_hat_list[[j]] <- gamma_hat
+    
+  # compute the prediction of g_hat_train on the test set 
+    n_val <- length(Z_validation)
+    g_hat_on_Z_val = rep(0, n_val)
+    if (bool_splines == 0){ 
+      for (i in 1:n_val){
+        g_hat_on_Z_val[i] <- g_hat(Z_validation[i], j, p_j, gamma_hat, Z_train, a, b)
+      }}
+    else{
+      basis <- t(as.matrix(bs(Z_validation, degree = j, intercept = FALSE)))
+      g_hat_on_Z_val <- t(gamma_hat)%*%basis
+    }
+    
+    # compute M and store it 
+    #Omega_val <- calcul_omega(W_validation,n_val)
+    #M_values[j] <- calcul_M(g_hat_on_Z_val, gamma_hat, j, n_val, Z_validation, Y_validation, W_validation, Omega_val, p_j, a, b)
+    
+    MSE_values[j] = sum((g_hat_on_Z_val - Y_validation)**2)
+    }
+  
+  # return J corresponding to the smallest MSE
+  J_opt = vect_J_to_test[which.min(MSE_values)]
+  print(c(MSE_values, J_opt))
+  gamma_hat <- estimation_gamma(n,J_opt,W,Z,Y,p_j,bool_splines)
+  
+  estimation_points <- rep(0, n)
+  if (bool_splines == 0){ 
+    for (i in 1:length(x)){
+      estimation_points[i] <- g_hat(Z[i], J_opt, p_j, gamma_hat, Z, a, b)
+    }}
+  else{
+    basis <- t(as.matrix(bs(Z, degree = J_opt, intercept = FALSE)))
+    estimation_points <- t(gamma_hat)%*%basis
+  }
+  
+  plot(Z, estimation_points, col = 'black')
+  points(Z, Y, col = 'green')
+}
 
 
+sample_train_test <- function(Z, Y, W, p_train){
+  # Create a single data frame with all variables
+  df <- data.frame(Z = Z, Y = Y, W = W)
+  
+  # Create bins based on the X variable (you can modify the binning logic if needed)
+  bins <- cut(df$Z, breaks = 3, labels = FALSE)
+  
+  # Sample indices for the training set using bins for stratification
+  index_train <- createDataPartition(bins, p = p_train, list = FALSE)
+  
+  # Indices for the validation set (complementary to train indices)
+  index_val <- setdiff(seq_len(nrow(df)), index_train)
+  
+  # Create train and validation sets based on indices
+  train_set <- df[index_train, ]
+  val_set   <- df[index_val, ]
+  
+  # Return the training and validation sets
+  return(list(
+    Z_train = train_set$Z, Y_train = train_set$Y, W_train = train_set$W,
+    Z_validation = val_set$Z, Y_validation = val_set$Y, W_validation = val_set$W
+  ))
+}
+
+
+# Test 
+vect_J_to_test = seq(2, 15, by = 1)
+optimization(Z, W, Y, n, vect_J_to_test, 0.8, p_j_trigo_0_1, 0)
 
 
