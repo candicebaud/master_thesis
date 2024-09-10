@@ -1,10 +1,13 @@
 #### Base de splines #### 
 library(splines)
-J = 5
+J = 100
 x = seq(-1, 5, by = 0.1)
-b_spline_basis_custom_knots <- bs(x, degree = J, intercept = TRUE)
+knots = rnorm(5, 0, 1)
+b_spline_basis_custom_knots <- bs(x, knots = x, intercept = FALSE)
 
-b_spline_basis_custom_knots
+b_spline_basis_custom_knots <- ns(x, knots = knots, intercept = FALSE)
+
+
 
 
 

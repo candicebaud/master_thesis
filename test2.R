@@ -54,6 +54,11 @@ create_P_splines <- function(Z, J){
   return(bs(Z, degree = J, intercept = FALSE))
 }
 
+
+#create_P_splines <- function(Z, J){
+#  return(bs())
+#}
+
 # Compute g_hat
 g_hat <- function(z, J, p_j, gamma_hat, Z, a, b){
   p_j_vector = rep(0, J)
