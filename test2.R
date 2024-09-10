@@ -2,13 +2,20 @@
 
 # data generating function
 g <- function(z){
-  return (z*exp(-z**2))
+  return (z**2)
 }
 
 # Fourier transform for the normal density
 fourier_transform <- function(x){
-  return(sqrt(2)*exp(0.5*x**2))
+  return(sqrt(2)*exp(-0.5*x**2))
 }
+
+#Test avec w laplace density 
+fourier_transform <- function(x){
+  return (0.5*exp(-abs(x)))
+}
+
+
 
 # Omega 
 calcul_omega <- function(W,n){
@@ -20,7 +27,7 @@ calcul_omega <- function(W,n){
   return(Omega)}
 
 
-# M
+# M (inutile à priori)
 calcul_M <- function(g_test, gamma_hat, J, n, Z, Y, W, Omega, p_j, a, b){
   M = 0
   for (i in 1:n){
@@ -30,7 +37,7 @@ calcul_M <- function(g_test, gamma_hat, J, n, Z, Y, W, Omega, p_j, a, b){
   return(M)
 }
 
-create_P <- function(J, n, Z, p_j, a, b){
+create_P <- function(J, n, Z, p_j){
   a = min(Z)
   b = max(Z)
   P = matrix(0, J, n)
@@ -115,13 +122,15 @@ estimation_gamma <- function(n, J, W, Z, Y, p_j, bool_splines){
     P <- t(create_P_splines(Z, J))
   }
   else{
-    P <- create_P(J,n,Z,p_j,a,b)
+    P <- create_P(J,n,Z,p_j)
   }
   
   #compute gamma
   gamma_step = P%*%Omega%*%Y
-  gamma_step_invert = P%*%Omega%*%t(P)
-  gamma_hat = solve(gamma_step_invert)%*%gamma_step
+  gamma_step_invert = solve(P%*%Omega%*%t(P))
+  gamma_hat = gamma_step_invert%*%gamma_step
+  
+  return(gamma_hat)
 }
 
 
@@ -145,7 +154,7 @@ plot_function_true_est <- function(x, gamma_hat, p_j_hat, true_g, Z, bool_spline
 
 
 #### Generate data ####
-n = 2000
+n = 1000
 W = rnorm(n, 0, 1)
 V = rnorm(n, 0, 1)
 rhoev = 0.5
@@ -161,9 +170,12 @@ Y = g(Z) + eps
 
 
 
-#### Estimation #### 
+#### Estimation ####
+Omega <- calcul_omega(W,n)
+
+
 # trigonometric basis
-J = 10
+J = 33
 gamma_hat <- estimation_gamma(n,J,W,Z,Y,p_j_trigo_0_1, 0)
 
 x = seq(-5, 5, by = 0.1)
@@ -171,7 +183,7 @@ plot_function_true_est(x, gamma_hat, p_j_trigo_0_1, g, Z, 0)
 
 
 #histogram basis
-J = 15
+J = 30
 gamma_hat <- estimation_gamma(n,J,W,Z,Y,p_j_hist_0_1,0)
 
 x = seq(-5, 5, by = 0.1)
@@ -179,7 +191,7 @@ plot_function_true_est(x, gamma_hat, p_j_hist_0_1, g, Z,0)
 
 
 # spline basis 
-J = 7
+J = 15
 gamma_hat <- estimation_gamma(n,J,W,Z,Y, empty, 1)
 
 x = seq(-5, 5, by = 0.1)
@@ -247,8 +259,8 @@ optimization <- function(Z, W, Y, n, vect_J_to_test, p_train, p_j, bool_splines)
     estimation_points <- t(gamma_hat)%*%basis
   }
   
-  plot(Z, estimation_points, col = 'black')
-  points(Z, Y, col = 'green')
+  plot(Y, estimation_points, col = 'black')
+  #points(Z, Y, col = 'green')
 }
 
 
@@ -279,6 +291,6 @@ sample_train_test <- function(Z, Y, W, p_train){
 
 # Test 
 vect_J_to_test = seq(2, 15, by = 1)
-optimization(Z, W, Y, n, vect_J_to_test, 0.8, p_j_trigo_0_1, 0)
+optimization(Z, W, Y, n, vect_J_to_test, 0.8, p_j_hist_0_1, 0)
 
 
