@@ -5,6 +5,7 @@ g <- function(z){
   return (z**2)
 }
 
+
 # Fourier transform for the normal density
 #fourier_transform <- function(x){
 #  return(sqrt(2)*exp(-0.5*x**2))
@@ -27,7 +28,7 @@ calcul_omega <- function(W,n){
   return(Omega)}
 
 
-# M (inutile à priori)
+# M 
 calcul_M <- function(g_test, gamma_hat, J, n, Z, Y, W, Omega, p_j, a, b, bool_splines, degree, g_hat_on_Z_val){
   M = 0
   if (bool_splines == 0){
@@ -218,7 +219,7 @@ Omega <- calcul_omega(W,n)
 
 
 # trigonometric basis
-J = 10
+J = 4
 gamma_hat <- estimation_gamma(n,J,W,Z,Y,p_j_trigo_0_1, 0, none)
 
 x = seq(-5, 5, by = 0.1)
@@ -226,7 +227,7 @@ plot_function_true_est(x, gamma_hat, p_j_trigo_0_1, g, Z, 0, none)
 
 
 #histogram basis
-J = 3
+J = 10
 gamma_hat <- estimation_gamma(n,J,W,Z,Y,p_j_hist_0_1,0,none)
 
 x = seq(-5, 5, by = 0.1)
@@ -234,7 +235,7 @@ plot_function_true_est(x, gamma_hat, p_j_hist_0_1, g, Z,0,none)
 
 
 # spline basis 
-J = 3
+J = 40
 gamma_hat <- estimation_gamma(n,J,W,Z,Y, empty, 1, 3)
 
 x = seq(-5, 5, by = 0.1)
@@ -378,3 +379,52 @@ vect_J_to_test = seq(2, 20, by = 1)
 optimization_adaptive(Z, W, Y, n, vect_J_to_test,p_j_trigo_0_1, 0, none, 2000)
 
 
+
+
+#### Tests pour regarder la convergence ####
+# fonction trigo
+trigo_approx <- function(J_max_true, J_max_approx, n){
+  gamma_true = runif(J_max_true, 0,1)
+  gamma_hat_list = list()
+  gamma_hat_list_all_k = list()
+  
+  
+  #simulate data
+  W = rnorm(n, 0, 1)
+  V = rnorm(n, 0, 1)
+  rhoev = 0.5
+  rhowz = 0.9
+  beta = sqrt((rhoev**2)/(1 - rhoev**2))
+  Z = (beta*W + V)/sqrt(1+beta**2)
+  
+  eta = rnorm(n, 0, 1)
+  a = sqrt((rhowz**2)/(1 - rhowz**2))
+  eps = (a*V + eta)/sqrt(1+beta**2)
+  
+  #simulate Y
+  for (k in 1:J_max_true){
+    Y = g_trigo_k(k, Z, gamma_true) + eps
+    # test different bases dimensions
+    for (j in 1:J_max_approx){
+      #compute gamma_hat
+      gamma_hat <- estimation_gamma(n,j,W,Z,Y,p_j_trigo_0_1, 0, none)
+      gamma_hat_list[[j]] = gamma_hat 
+      }
+    gamma_hat_list_all_k[[k]] <- gamma_hat_list
+  }
+  return(c(gamma_hat_list_all_k, sqrt(2)*gamma_true))
+}
+
+
+g_trigo_k <- function(k, Z, gamma_true){
+  Y = rep(0, length(Z))
+  for (z in 1:length(Z)){
+    for (j in 1:k){
+      Y[z] = Y[z] + gamma_true[j]*basis_a_b(j,k,Z[z], min(Z), max(Z),p_j_trigo_0_1)
+    }
+  }
+  return(Y)
+}
+
+
+res <- trigo_approx(5, 10, 500)
