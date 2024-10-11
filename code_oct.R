@@ -353,7 +353,68 @@ optimization_CV(Z, W, Y, vect_J_to_test, 0.6, p_j_trigo_0_1, 0, none, x, 1)
 
 
 # 2 - based on Lepski
+lepski <- function(J_max, W,Z,Y,p_j, bool_splines, degree){
+  pen_j = 0
+  Contrast_j = 0
+  contrast_plus_pen <- rep(0, J_max)
+  for (j in 1:J_max){
+    pen_j = pen(j) #faire une fonction pénalité
+    
+    #estimation de la fonction en m 
+    gamma_hat_j <- estimation_gamma(j,W,Z,Y,p_j, bool_splines, degree)
+    
+    dist_vect <- rep(0, (J_max-j+1)) #vecteur des distances calculées
+    dist_minus_pen <- rep(0, (J_max-j+1)) #vecteur des distances - pen calculées
+    
+      
+    for (j_prime in j:J_max){
+      gamma_hat_j_prime <- estimation_gamma(j_prime,W,Z,Y,p_j, bool_splines, degree)
+      dist_vect[j_prime-j+1] = distance_square(gamma_hat_j, gamma_hat_j_prime, W, Z, Y, p_j, bool_splines, degree,j, j_prime) #réfléchir comment on fait la distance
+      dist_minus_pen[j_prime-j+1] = dist_vect[j_prime-j+1] - pen(j_prime)}
+
+    Contrast_j = max(dist_minus_pen)
+    
+    contrast_plus_pen[j] = Contrast_j + pen_j
+
+  
+    }
+  J_opt = which.min(contrast_plus_pen)
+  return(J_opt)
+}
 
 
+pen <- function(j){
+  #à modifier
+  return(0.005*j)
+}
 
+distance_square <- function(gamma_hat_j, gamma_hat_j_prime, W, Z, Y, p_j, bool_splines, degree,j, j_prime){
+  a = min(Z)
+  b = max(Z)
+  g_hat_j = rep(0, length(Z))
+  g_hat_jprime = rep(0, length(Z))
+  if (bool_splines == 0){ 
+    for (i in 1:length(Z)){
+      g_hat_j[i] <- g_hat(Z[i], j, p_j, gamma_hat_j, a, b)
+    }}
+  else{
+    basis <- create_P_splines(Z, Z, j, degree)
+    g_hat_j <- basis%*%gamma_hat_j
+  }
+  
+  if (bool_splines == 0){ 
+    for (i in 1:length(Z)){
+      g_hat_jprime[i] <- g_hat(Z[i], j_prime, p_j, gamma_hat_j_prime, a, b)
+    }}
+  else{
+    basis <- create_P_splines(Z, Z, j_prime, degree)
+    g_hat_jprime <- basis%*%gamma_hat_j_prime
+  }
+    
+  # à voir comment on le définit
+  return(sum((g_hat_j - g_hat_jprime)**2)/(n**2))
+}
+
+# tests 
+lepski(10,W,Z,Y,p_j_trigo_0_1, 0, none)
   
