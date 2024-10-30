@@ -87,7 +87,7 @@ p_j_hist_0_1 <-function(j, J, z){
   }
 }
 
-# generalize for interval [a,b]
+# generalize for interval [a,b] : en fait ici on peut dire qu'on normalise Z entre 0 et 1
 basis_a_b <-function(j, J, z, a, b, p_j_0_1){
   return(p_j_0_1(j,J,((z-a)/(b-a)))/sqrt(b-a))
 }
@@ -184,28 +184,43 @@ rhoev = 0.5
 rhowz = 0.9
 beta = sqrt((rhoev**2)/(1 - rhoev**2))
 Z = (beta*W + V)/sqrt(1+beta**2)
+# ici on rescale Z  
+#Z = (Z - min(Z))/(max(Z) - min(Z))
 
 eta = rnorm(n, 0, 1)
 a = sqrt((rhowz**2)/(1 - rhowz**2))
 eps = (a*V + eta)/sqrt(1+beta**2)
 
-Y = g(Z,1) + eps
+Y = g(Z,2) + eps
 
+plot(Z, Y)
+#pb dans la génération de données si on normalise Z, les eps et eta deviennent trop grands donc estimation pourrie
 
 #### Tests #### 
 library(splines)
-J = 20
+#trigo
+J = 10
 gamma_hat <- estimation_gamma(J,W,Z,Y,p_j_trigo_0_1, 0, none)
 
-x = seq(-5, 5, by = 0.1)
-plot_function_true_est(x, gamma_hat, p_j_trigo_0_1, Z, 0, none,1)
+x = seq(min(Z),max(Z), by = 0.1)
+plot_function_true_est(x, gamma_hat, p_j_trigo_0_1, Z, 0, none,2)
 
-
-J = 30
+#splines
+J = 5
 gamma_hat <- estimation_gamma(J,W,Z,Y,empty, 1, 3)
 
-x = seq(-5, 5, by = 0.1)
-plot_function_true_est(x, gamma_hat, empty, Z, 1, 3,1)
+x = seq(min(Z), max(Z), by = 0.1)
+plot_function_true_est(x, gamma_hat, empty, Z, 1, 3,2)
+
+
+
+#hist
+J = 20
+gamma_hat <- estimation_gamma(J,W,Z,Y,p_j_hist_0_1, 0, none)
+
+x = seq(min(Z),max(Z), by = 0.1)
+plot_function_true_est(x, gamma_hat, p_j_hist_0_1, Z, 0, none,2)
+
 
 
 #### Choosing J ####
