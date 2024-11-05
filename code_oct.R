@@ -196,6 +196,7 @@ Y = g(Z,2) + eps
 plot(Z, Y)
 #pb dans la génération de données si on normalise Z, les eps et eta deviennent trop grands donc estimation pourrie
 
+
 #### Tests #### 
 library(splines)
 #trigo
