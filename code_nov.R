@@ -652,9 +652,6 @@ lepski_bootstrap <- function(n_boot,n,valid_dim,x_grid, W, Z, Y, p_j, bool_splin
 }
 
 
-
-
-
 compute_M_bootstrap <- function(J, W, Z, Y, p_j, bool_splines, degree){
   n = length(Z)
   #compute Omega
@@ -670,6 +667,8 @@ compute_M_bootstrap <- function(J, W, Z, Y, p_j, bool_splines, degree){
   
   return(M_boot)
 }
+
+
 
 T_stat_inter_x <- function(Y, Z, W, p_j, degree, bool_splines, x, x_index, I_hat, w_vector, list_M_boot, matrix_sigma_all_j_all_x, matrix_all_u, matrix_sigma_all_j_j2_all_x){
   a = min(Z)
