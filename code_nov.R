@@ -652,6 +652,9 @@ lepski_bootstrap <- function(n_boot,n,valid_dim,x_grid, W, Z, Y, p_j, bool_splin
 }
 
 
+
+
+
 compute_M_bootstrap <- function(J, W, Z, Y, p_j, bool_splines, degree){
   n = length(Z)
   #compute Omega
