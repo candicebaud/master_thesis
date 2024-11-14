@@ -492,164 +492,27 @@ optimization_CV_MSE(simul_3$Z, simul_3$W, simul_3$Y, vect_J_to_test, 0.8, none, 
 #### Selection of J by Lepski 1 (Comte) #### 
 
 
-#### Selection of J by Lepski 2 (Chen) #### 
-lepski_chen <- function(c_0,W,Z,Y,p_j,bool_splines,degree, valid_dim){
-  prev_ratio = 0
-  new_ratio = 1000
-  J = 1
-  
-  #find J_max
-  while ((prev_ratio>10 || new_ratio<= 10)){
-    s_hat_J = calcul_s_J(todo) #TODO
-    prev_ratio = new_ratio
-    new_ratio = s_hat_J*J*sqrt(log(J))/sqrt(n) 
-    J = J+1
-    while (!valid_dim(J)){# as long as the value of J is not valid we look for another one
-      J = J+1
-     }}
-
-  J_max = J
-  
-  I_hat = seq(as.integer(0.1 * log(J_max)^2), as.integer(J_max) + 1, by = 1)
-  I_hat = sort(I_hat[valid_dim(I_hat)]) #select only the valid dimensions
-  
-  index = 1
-  J = I_hat[index]
-  condition = FALSE
-  while (J %in% I_hat && condition == FALSE){
-    for (J_prime in I_hat){
-      if (J_prime>J){
-        #compute g_J and g_J'
-        gamma_J <- estimation_gamma(J,W,Z,Y,p_j, bool_splines, degree)
-        gamma_J_prime <- estimation_gamma(J_prime,W,Z,Y,p_j, bool_splines, degree)
-        
-        #compute V_hat(J) and V_hat(J')
-        V_J = V_hat_J(J)
-        V_J_prime = V_hat_J(J_prime)
-        
-        #compute |g_J - g_J'| (a)
-        a = difference_norm(g_J, g_J_prime)
-        
-        #compute c_0(V_hat(J)+V_hat(J')) (b)
-        b = c_0*(V_J + V_J_prime)
-        
-        if(a<b){
-          condition = TRUE}
-        else{
-          condition = FALSE
-        }  
-        index = index + 1
-        J = I_hat[index]
-      }
-      else{
-        index = index + 1
-        J = I_hat[index]
-      }}}
-  J_opt = J
-  return(J_opt)
-}
-
-
-
-valid_dim_splines <- function(J){#checks if J is a valid dimension in Tau  
-  
-}
-
-V_hat_J <- function(J, n, s_J_hat){
-  return (sqrt(log(n)/n)/s_J_hat) #the one in our case 
-}
-
-difference_norm <- function(g_J, g_J_prime){
-  # TO DO
-}
-
 
 #### Lepski with bootstrap ####
-lepski_bootstrap <- function(n_boot,n,valid_dim,x_grid, W, Z, Y, p_j, bool_splines, degree){
-  prev_ratio = 0
-  new_ratio = 1000
-  J = 1
+
+
+
+#install.packages("expm")
+library(expm)
+calcul_s_J <- function(J, W, Z, Y, p_j, bool_splines, degree){
+  n = length(W)
   
-  #find J_max to then create I_hat
-  while ((prev_ratio>10 || new_ratio<= 10)){
-    s_hat_J = calcul_s_J(todo) #TODO
-    prev_ratio = new_ratio
-    new_ratio = s_hat_J*J*sqrt(log(J))/sqrt(n) 
-    J = J+1
-    while (!valid_dim(J)){# as long as the value of J is not valid we look for another one
-      J = J+1
-    }}
+  Omega <- create_W(W)
+  Phi <- create_P(Z, J, Z, p_j, degree, bool_splines)
+  tPhi_Phi <- t(Phi)%*%Phi
   
-  J_max = J
+  inverse_tPhi_Phi <- solve(tPhi_Phi)
+  sqrt_inverse_tPhi_Phi <- sqrtm(inverse_tPhi_Phi)
+  res_mat <- n*sqrt_inverse_tPhi_Phi%*%t(Phi)%*%Omega%*%Phi%*%sqrt_inverse_tPhi_Phi
   
-  #create I_hat
-  I_hat = seq(as.integer(0.1 * log(J_max)^2), as.integer(J_max) + 1, by = 1)
-  I_hat = sort(I_hat[valid_dim(I_hat)]) #select only the valid dimensions
-  length_I_hat = length(I_hat)
+  min_eigen_val <- min(eigen(res_mat)$values)
   
-  
-  # estimate the models (ie the gamma_J and M_boot for all J)
-  matrix_gamma = matrix(0, nrow = length_I_hat, ncol = length_I_hat)
-  list_M_boot <- list()
-  for (j in 1:length_I_hat){
-    M_boot_j <- compute_M_bootstrap(j, W, Z, Y, p_j, bool_splines, degree)
-    list_M_boot[[j]] <- M_boot_j
-    
-    gamma_J <- M_boot_j%*%Y
-    gamma_J_zeros <- c(gamma_J, rep(0, length_I_hat - j)) #add zeros for good dimension
-    matrix_gamma[j,] = gamma_J_zeros #ATTENTION ! prendre que les J premiers termes dans les prochains algos pour pas prendre les zéros!!!
-  }
-  
-  #draw the w_i
-  W_boot_matrix <- matrix(rnorm(n_boot * n, mean = 0, sd = 1), nrow = n_boot, ncol = n)
-  
-  #compute the sigma_J(x) for all values of J and all values of x
-  matrix_sigma_all_j_all_x <- matrix(0, nrow = length_I_hat, ncol = length(x_grid))
-  matrix_all_u <- matrix(0, nrow = length_I_hat, ncol = n) #n number of data points (ie length(Z))
-  for (j_index in 1:length_I_hat){
-    j = I_hat[j_index]
-    h_hat_j_on_Z = calcul_hat_g_on_Z(j, Z, p_j, matrix_gamma[[j_index]][1:j], a, b, Z, degree, bool_splines)
-    u_hat_j = Y - h_hat_j_on_Z 
-    matrix_all_u[j,] = u_hat_j
-    
-    P_j_on_x <- create_P(x_grid, j, Z, p_j, degree, bool_splines) #create for all x_grid
-    U_j_j <- create_matrix_U(u_hat_j, u_hat_j) 
-    sigma_j = t(P_j_on_x)%*%list_M_boot[[j]]%*%U_j_j%*%t(list_M_boot[[j]])%*%P_j_on_x #vecteur de taille len(x_grid)
-    matrix_sigma_all_j_all_x[j,] = sigma_j #ligne j prend les valeurs des sigma_j(x) pour toutes les valeurs de x_grid
-  }
-  
-  #compute the sigma_J,J_2(x) for all values of x
-  matrix_sigma_all_j_j2_all_x <- replicate(length(x_grid), matrix(0, length_I_hat, length_I_hat), simplify = FALSE)
-  for (j_index in 1:length_I_hat){
-    j = I_hat[j_index]
-    P_j_on_x <- create_P(x_grid, j, Z, p_j, degree, bool_splines)
-    for (j_prime_index in (j_index+1):length_I_hat){
-      j_prime = I_hat[j_prime_index]
-      
-      #calcul de sigma_j,jprime(x) pour tous les x_grid et ensuite on met dans les matrices
-      U_j_jp <- create_matrix_U(matrix_all_u[j,], matrix_all_u[j_prime,])
-      P_j_prime_on_x <- create_P(x_grid, j_prime, Z, p_j, degree, bool_splines)
-      sigma_j_j_prime = t(P_j_on_x)%*%list_M_boot[[j]]%*%U_j_jp%*%t(list_M_boot[[j_prime]])%*%P_j_prime_on_x #vecteur de la taille de x
-      for (x_index in 1:length(x_grid)){
-        matrix_sigma_all_j_j2_all_x[[x_index]][j_index, j_prime_index] = sigma_j_j_prime[x_index]
-      }}}
-  
-  
-  #compute the T stat for each draw of w
-  T_i = rep(0, n_boot)
-  for (i in 1:n_boot){
-    T_i[i] = T_stat_D(x_grid, Y, Z, W, p_j, degree, bool_splines, I_hat, W_boot_matrix[i,], matrix_gamma, list_M_boot, matrix_sigma_all_j_all_x, matrix_all_u, matrix_sigma_all_j_j2_all_x) 
-  }
-  alpha = min(0.5, sqrt(log(J_max)/J_max))
-  theta = quantile(T_i, probs = 1 - alpha)
-  
-  J_n_hat = I_hat[length(I_hat)-1] #on prend l'avant dernier pour être le plus petit strict
-  J_hat = compute_J_hat(I_hat, x_grid, p_j, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
-    
-  J_tilde = min(J_hat, J_n_hat)
-  
-  return(J_tilde)
-}
+  return(min_eigen_val)}
 
 
 compute_M_bootstrap <- function(J, W, Z, Y, p_j, bool_splines, degree){
@@ -723,7 +586,7 @@ T_stat_inter_x <- function(Y, Z, W, p_j, degree, bool_splines, x, x_index, I_hat
   
 
 calcul_hat_g_on_Z <- function(j, Z, p_j, gamma_hat, a, b, Z_to_evaluate, degree, bool_splines){
-  g_hat_on_x <- 0
+  g_hat_on_x <- rep(0, length(Z_to_evaluate))
   if (bool_splines == 0){
     for (i in 1:length(Z_to_evaluate)){
       g_hat_on_Z <- g_hat(Z_to_evaluate[i], j, p_j, gamma_hat, a, b)
@@ -731,7 +594,11 @@ calcul_hat_g_on_Z <- function(j, Z, p_j, gamma_hat, a, b, Z_to_evaluate, degree,
   }
   else{
     basis <- create_P_splines(Z_to_evaluate, Z, j, degree)
-    g_hat_on_Z <-  basis%*%gamma_hat
+    if (length(gamma_hat)>1){
+    g_hat_on_Z <- basis%*%gamma_hat}
+    else {
+      g_hat_on_Z <- gamma_hat*sum(basis)
+    }
   }
   return(g_hat_on_Z)
 }
@@ -739,7 +606,7 @@ calcul_hat_g_on_Z <- function(j, Z, p_j, gamma_hat, a, b, Z_to_evaluate, degree,
 
 create_matrix_U <- function(u_j, u_j_prime){
   n = length(u_j)
-  res_mat <- matrix(0, nrow = n, n_col = n)
+  res_mat <- matrix(0, nrow = n, ncol = n)
   for (i in 1:n){
     res_mat[i,i] = u_j[i]*u_j_prime[i]
   }
@@ -802,6 +669,195 @@ calcul_ratio_step <- function(J, J_index, I_hat, x, x_index, p_j, matrix_gamma, 
   return(max(res_mat))
 }
 
+valid_dim <- function(J){
+  if (J>0){
+    return(TRUE)
+  }
+  else{
+    return(FALSE)
+  }
+  
+}
+
+lepski_bootstrap <- function(n_boot,valid_dim,x_grid, W, Z, Y, p_j, bool_splines, degree){
+  n = length(W)
+  
+  #code fonctionne mais pb ça ne s'arrête pas... définir un J_max à la main en attendant, leur critère n'est peut-être pas le bon pour nous
+  #s_1 = 1/calcul_s_J(1, W, Z, Y, p_j, bool_splines, degree)
+  #s_2 = 1/calcul_s_J(2, W, Z, Y, p_j, bool_splines, degree)
+  #prev_ratio = s_1*1*sqrt(log(1))/sqrt(n) 
+  #new_ratio = s_2*2*sqrt(log(2))/sqrt(n)
+  
+  #if ((prev_ratio <= 10 && new_ratio > 10)) {
+  #  J = 2
+  #} else {
+  #  J = 2
+  #  while (!(prev_ratio <= 10 && new_ratio > 10)) {
+  #    print(c(prev_ratio, new_ratio))
+  #    J = J + 1
+      
+      # Look for a valid J
+  #    while (!valid_dim(J)) {  
+  #      J = J + 1}
+      
+      # Calculate s_hat_J and update ratios
+  #    s_hat_J = calcul_s_J(J, W, Z, Y, p_j, bool_splines, degree)
+  #    prev_ratio = new_ratio
+  #    new_ratio = s_hat_J * J * sqrt(log(J)) / sqrt(n)
+  #  }
+  #}
+  
+  #J_max = J
+  J_max = 15 #arbitraire pour l'instant
+  
+  #create I_hat
+  I_hat = seq(as.integer(0.1 * log(J_max)^2), as.integer(J_max), by = 1)
+  I_hat = sort(I_hat[sapply(I_hat,valid_dim)]) #select only the valid dimensions
+  length_I_hat = length(I_hat)
+  
+  
+  # estimate the models (ie the gamma_J and M_boot for all J)
+  matrix_gamma = matrix(0, nrow = length_I_hat, ncol = length_I_hat)
+  list_M_boot <- list()
+  for (j_index in 1:length_I_hat){
+    j = I_hat[j_index]
+    M_boot_j <- compute_M_bootstrap(j, W, Z, Y, p_j, bool_splines, degree)
+    list_M_boot[[j_index]] <- M_boot_j
+    
+    gamma_J <- M_boot_j%*%Y
+    gamma_J_zeros <- c(gamma_J, rep(0, length_I_hat - j)) #add zeros for good dimension
+    matrix_gamma[j_index,] = gamma_J_zeros #ATTENTION ! prendre que les J premiers termes dans les prochains algos pour pas prendre les zéros!!!
+  }
+  
+  
+  #draw the w_i
+  W_boot_matrix <- matrix(rnorm(n_boot * n, mean = 0, sd = 1), nrow = n_boot, ncol = n)
+  
+  #compute the sigma_J(x) for all values of J and all values of x
+  matrix_sigma_all_j_all_x <- matrix(0, nrow = length_I_hat, ncol = length(x_grid))
+  matrix_all_u <- matrix(0, nrow = length_I_hat, ncol = n) #n number of data points (ie length(Z))
+  for (j_index in 1:length_I_hat){
+    j = I_hat[j_index]
+    h_hat_j_on_Z = calcul_hat_g_on_Z(j, Z, p_j, matrix_gamma[j_index,1:j], a, b, Z, degree, bool_splines)
+    u_hat_j = Y - h_hat_j_on_Z 
+    matrix_all_u[j_index,] = u_hat_j
+    
+    P_j_on_x <- create_P(x_grid, j, Z, p_j, degree, bool_splines) #create for all x_grid
+    U_j_j <- create_matrix_U(u_hat_j, u_hat_j) 
+    middle_matrix <- list_M_boot[[j_index]]%*%U_j_j%*%t(list_M_boot[[j_index]]) #ok
+    
+    vec_sigma_j <- rep(0, length(x_grid))
+    if (length(middle_matrix)>1){
+      for (x_index in 1:length(x_grid)){
+        vec_sigma_j[x_index] <- P_j_on_x[x_index,]%*%(middle_matrix)%*%P_j_on_x[x_index,]
+      }
+    }
+    else{
+      for (x_index in 1:length(x_grid)){
+        vec_sigma_j[x_index] = middle_matrix*P_j_on_x[x_index]^{2}
+      }
+    }
+    matrix_sigma_all_j_all_x[j_index,] = vec_sigma_j #ligne j prend les valeurs des sigma_j(x) pour toutes les valeurs de x_grid
+  }
+  #ok jusqu'ici ensuite problème
+  
+  
+  #compute the sigma_J,J_2(x) for all values of x
+  matrix_sigma_all_j_j2_all_x <- replicate(length(x_grid), matrix(0, length_I_hat, length_I_hat), simplify = FALSE)
+  for (j_index in 1:length_I_hat){
+    j = I_hat[j_index]
+    P_j_on_x <- create_P(x_grid, j, Z, p_j, degree, bool_splines)
+    for (j_prime_index in (j_index+1):length_I_hat){
+      j_prime = I_hat[j_prime_index]
+      
+      #calcul de sigma_j,jprime(x) pour tous les x_grid et ensuite on met dans les matrices
+      U_j_jp <- create_matrix_U(matrix_all_u[j,], matrix_all_u[j_prime,])
+      P_j_prime_on_x <- create_P(x_grid, j_prime, Z, p_j, degree, bool_splines)
+      sigma_j_j_prime = t(P_j_on_x)%*%list_M_boot[[j]]%*%U_j_jp%*%t(list_M_boot[[j_prime]])%*%P_j_prime_on_x #vecteur de la taille de x
+      for (x_index in 1:length(x_grid)){
+        matrix_sigma_all_j_j2_all_x[[x_index]][j_index, j_prime_index] = sigma_j_j_prime[x_index]
+      }}}
+  
+  
+  #compute the T stat for each draw of w
+  T_i = rep(0, n_boot)
+  for (i in 1:n_boot){
+    T_i[i] = T_stat_D(x_grid, Y, Z, W, p_j, degree, bool_splines, I_hat, W_boot_matrix[i,], matrix_gamma, list_M_boot, matrix_sigma_all_j_all_x, matrix_all_u, matrix_sigma_all_j_j2_all_x) 
+  }
+  alpha = min(0.5, sqrt(log(J_max)/J_max))
+  theta = quantile(T_i, probs = 1 - alpha)
+  
+  J_n_hat = I_hat[length(I_hat)-1] #on prend l'avant dernier pour être le plus petit strict
+  J_hat = compute_J_hat(I_hat, x_grid, p_j, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
+  
+  J_tilde = min(J_hat, J_n_hat)
+  
+  return(J_tilde)
+}
+
+#tests
+#calcul_s_J(3, simul_3$W, simul_3$Z, simul_3$Y, p_j_trigo_0_1, 0, none) : ok fonctionne aussi pour les splines
+
+data_param_3 = c(20, 0.5, 0.9)
+simul_3 = simulate_data_3(data_param_3, g_sim_3, 2) #utilisent que le cas 2 et 3 dans le papier lapenta
+W <- simul_3$W
+Y <- simul_3$Y
+Z <- simul_3$Z
+
+bool_splines=1
+degree = 3
+
+n = length(W)
+
+J_max = 15
+
+n_boot= 100
+x_grid = seq(min(Z), max(Z), length.out = 30)
+
+#problème avec cette fonction
+matrix_sigma_all_j_j2_all_x <- replicate(length(x_grid), matrix(0, length_I_hat, length_I_hat), simplify = FALSE)
+for (j_index in 1:length_I_hat){ #length_I_hat
+  j = I_hat[j_index]
+  P_j_on_x <- create_P(x_grid, j, Z, p_j, degree, bool_splines)
+  for (j_prime_index in (j_index):length_I_hat){
+    j_prime = I_hat[j_prime_index]
+    
+    #calcul de sigma_j,jprime(x) pour tous les x_grid et ensuite on met dans les matrices
+    U_j_jp <- create_matrix_U(matrix_all_u[j_index,], matrix_all_u[j_prime_index,])
+    P_j_prime_on_x <- create_P(x_grid, j_prime, Z, p_j, degree, bool_splines)
+
+    middle_matrix <- list_M_boot[[j_index]]%*%U_j_jp%*%t(list_M_boot[[j_prime_index]])
+    print(dim(middle_matrix))
+    
+    if (j == 1 && j_prime == 1){
+      vec_sigma_j_jprime <- rep(0, length(x_grid))
+      for (x_index in 1:length(x_grid)){
+        vec_sigma_j_jprime[x_index] = middle_matrix*P_j_on_x[x_index]*P_j_prime_on_x[x_index]
+        matrix_sigma_all_j_j2_all_x[[x_index]][j_index, j_prime_index] = vec_sigma_j_jprime[j_prime_index]
+      }
+    }
+    #if (j == 1 && j_prime >1){
+      #vec_sigma_j_jprime <- rep(0, length(x_grid))
+      #for (x_index in 1:length(x_grid)){
+      #  vec_sigma_j_jprime[x_index] = middle_matrix*P_j_on_x[x_index]*sum(P_j_prime_on_x[x_index,])
+
+      #  print(vec_sigma_j_jprime[j_prime_index])
+      #  matrix_sigma_all_j_j2_all_x[[x_index]][j_index, j_prime_index] = vec_sigma_j_jprime[j_prime_index]
+      #}
+    #}
+    #if (j>1 && j_prime == 1){
+      #for (x_index in 1:length(x_grid)){
+      #  res = middle_matrix*P_j_on_x[x_index,]*P_j_prime_on_x[x_index]
+      #  matrix_sigma_all_j_j2_all_x[[x_index]][j_index, j_prime_index] = vec_sigma_j_jprime[j_prime_index]
+      #}
+    #}
+    if (j>1 && j_prime >1){
+      for (x_index in 1:length(x_grid)){
+        res <- P_j_on_x[x_index,]%*%(middle_matrix)%*%P_j_prime_on_x[x_index,]
+        matrix_sigma_all_j_j2_all_x[[x_index]][j_index, j_prime_index] = vec_sigma_j_jprime[j_prime_index]
+      }
+    }
+  }}
 
 
 
@@ -813,11 +869,76 @@ calcul_ratio_step <- function(J, J_index, I_hat, x, x_index, p_j, matrix_gamma, 
 
 
 
+#### Selection of J by Lepski 2 (Chen) #### 
+lepski_chen <- function(c_0,W,Z,Y,p_j,bool_splines,degree, valid_dim){
+  prev_ratio = 0
+  new_ratio = 1000
+  J = 1
+  
+  #find J_max
+  while ((prev_ratio>10 || new_ratio<= 10)){
+    s_hat_J = calcul_s_J(todo) #TODO
+    prev_ratio = new_ratio
+    new_ratio = s_hat_J*J*sqrt(log(J))/sqrt(n) 
+    J = J+1
+    while (!valid_dim(J)){# as long as the value of J is not valid we look for another one
+      J = J+1
+    }}
+  
+  J_max = J
+  
+  I_hat = seq(as.integer(0.1 * log(J_max)^2), as.integer(J_max) + 1, by = 1)
+  I_hat = sort(I_hat[valid_dim(I_hat)]) #select only the valid dimensions
+  
+  index = 1
+  J = I_hat[index]
+  condition = FALSE
+  while (J %in% I_hat && condition == FALSE){
+    for (J_prime in I_hat){
+      if (J_prime>J){
+        #compute g_J and g_J'
+        gamma_J <- estimation_gamma(J,W,Z,Y,p_j, bool_splines, degree)
+        gamma_J_prime <- estimation_gamma(J_prime,W,Z,Y,p_j, bool_splines, degree)
+        
+        #compute V_hat(J) and V_hat(J')
+        V_J = V_hat_J(J)
+        V_J_prime = V_hat_J(J_prime)
+        
+        #compute |g_J - g_J'| (a)
+        a = difference_norm(g_J, g_J_prime)
+        
+        #compute c_0(V_hat(J)+V_hat(J')) (b)
+        b = c_0*(V_J + V_J_prime)
+        
+        if(a<b){
+          condition = TRUE}
+        else{
+          condition = FALSE
+        }  
+        index = index + 1
+        J = I_hat[index]
+      }
+      else{
+        index = index + 1
+        J = I_hat[index]
+      }}}
+  J_opt = J
+  return(J_opt)
+}
 
 
 
+valid_dim_splines <- function(J){#checks if J is a valid dimension in Tau  
+  
+}
 
+V_hat_J <- function(J, n, s_J_hat){
+  return (sqrt(log(n)/n)/s_J_hat) #the one in our case 
+}
 
+difference_norm <- function(g_J, g_J_prime){
+  # TO DO
+}
 
 
 
