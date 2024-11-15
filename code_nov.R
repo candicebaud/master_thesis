@@ -532,59 +532,6 @@ compute_M_bootstrap <- function(J, W, Z, Y, p_j, bool_splines, degree){
 }
 
 
-
-T_stat_inter_x <- function(Y, Z, W, p_j, degree, bool_splines, x, x_index, I_hat, w_vector, list_M_boot, matrix_sigma_all_j_all_x, matrix_all_u, matrix_sigma_all_j_j2_all_x){
-  a = min(Z)
-  b = max(Z)
-  
-  I_hat = sort(I_hat) 
-  
-  diff_matrix_x <- matrix(0, nrow = length(I_hat), ncol = length(I_hat))
-  value_j <- rep(0,length(I_hat))
-  value_j_prime <- rep(0, length(I_hat)) #to keep track of the values of J
-  
-  matrix_ratio <- matrix(0, nrow = length(I_hat), ncol = length(I_hat))
-
-  for (j_index in 1:length[I_hat]){
-    j = I_hat[j_index]
-    
-    #compute u_star 
-    u_hat_j = matrix_all_u[j_index,]
-    u_star_j = u_hat_j*w_vector
-    
-    #compute D_j sur les x
-    P_j_on_x <- create_P(x, j, Z, p_j, degree, bool_splines)
-    D_j_star = t(P_j_on_x)%*%list_M_boot[[j]]%*%u_star_j #checker les dimensions
-    
-    for (j_prime_index in j_index:length(I_hat)){
-      j_prime = I_hat[j_prime_index]
-      
-      #compute u_star_j_prime
-      u_hat_j_prime = matrix_all_u[j_prime_index,]
-      u_star_j_prime = u_hat_j_prime*w_vector
-      
-      #compute D_j_prime sur les x
-      P_j_prime_on_x <- create_P(x, j_prime, Z, p_j, degree, bool_splines)
-      D_j_prime_star = t(P_j_prime_on_x)%*%list_M_boot[[j_prime]]%*%u_star_j_prime #vecteur de taille x
-      
-      
-      #Stockage des résultats
-      diff_matrix_x[j_index,j_prime_index] = abs(D_j_prime_star - D_j_star) 
-      sigma_j = matrix_sigma_all_j_all_x[j_index, x_index]
-      sigma_j_prime = matrix_sigma_all_j_all_x[j_prime_index, x_index]
-      sigma_j_j_prime = matrix_sigma_all_j_j2_all_x[[x_index]][j_index, j_prime_index]
-      sigma_val = sigma_j + sigma_j_prime - 2*sigma_j_j_prime
-      matrix_ratio[j_index, j_prime_index] = diff_matrix_x[j_index,j_prime_index]/sqrt(sigma_matrix_x[j_index, j_prime_index])
-      
-      value_j[j_index] = j
-      value_j_prime[j_prime_index] = j_prime
-      
-    }}
-  
-  return(max(matrix_ratio))
-}
-  
-
 calcul_hat_g_on_Z <- function(j, Z, p_j, gamma_hat, a, b, Z_to_evaluate, degree, bool_splines){
   g_hat_on_x <- rep(0, length(Z_to_evaluate))
   if (bool_splines == 0){
@@ -615,16 +562,52 @@ create_matrix_U <- function(u_j, u_j_prime){
   
   
 T_stat_D <- function(x_grid, Y, Z, W, p_j, degree, bool_splines, I_hat, w_vector, list_M_boot, matrix_sigma_all_j_all_x, matrix_all_u, matrix_sigma_all_j_j2_all_x){
-  vec_x <- rep(0, length(x_grid))
-  for (x_index in 1:length(x_grid)){
-    vec_x <- T_stat_inter_x(Y, Z, W, p_j, degree, bool_splines, x_grid[x_index], x_index, I_hat, w_vector, matrix_gamma, list_M_boot, matrix_sigma_all_j_all_x, matrix_all_u, matrix_sigma_all_j_j2_all_x)
-  }
-  return(max(vec_x))
-}
+  I_hat = sort(I_hat)
+  
+  diff_matrix_allx <- replicate(length(x_grid), matrix(0, length_I_hat, length_I_hat), simplify = FALSE)#matrice des diff de D_j
+  matrix_ratio_allx <-  replicate(length(x_grid), matrix(0, length_I_hat, length_I_hat), simplify = FALSE)
+  
+  for (j_index in 1:length(I_hat)){
+    j = I_hat[j_index]
+    u_hat_j = matrix_all_u[j_index,] #chaque ligne correspond au vecteur des erreurs de prédiction pour J = valeur de la ligne
+    u_star_j = u_hat_j*w_vector #on calcule le vecteur bootstrap
+    
+    P_j_on_x <- create_P(x_grid, j, Z, p_j, degree, bool_splines)
+    D_j_star = P_j_on_x%*%list_M_boot[[j]]%*%u_star_j #vecteur de taille nx
+    
+    for (j_prime_index in j_index:length(I_hat)){
+      j_prime = I_hat[j_prime_index]
+      
+      #compute u_star_j_prime
+      u_hat_j_prime = matrix_all_u[j_prime_index,]
+      u_star_j_prime = u_hat_j_prime*w_vector
+      
+      #compute D_j_prime sur les x
+      P_j_prime_on_x <- create_P(x_grid, j_prime, Z, p_j, degree, bool_splines)
+      D_j_prime_star = P_j_prime_on_x%*%list_M_boot[[j_prime]]%*%u_star_j_prime #vecteur de taille x
+    }
+    
+    #Stockage des résultats
+    for (x_index in 1:length(x_grid)){
+      diff_matrix_allx[[x_index]][j_index, j_prime_index] =abs(D_j_prime_star[x_index] - D_j_star[x_index]) 
+      
+      sigma_j_x = matrix_sigma_all_j_all_x[j_index, x_index]
+      sigma_j_prime_x = matrix_sigma_all_j_all_x[j_prime_index, x_index]
+      sigma_j_j_prime_x = matrix_sigma_all_j_j2_all_x[[x_index]][j_index, j_prime_index]
+      sigma_val_x = sigma_j_x + sigma_j_prime_x - 2*sigma_j_j_prime_x
+      
+      if (sigma_val_x !=0){ #attention on a des sigma = 0 (bizarre) et donc pb
+        matrix_ratio_allx[[x_index]][j_index, j_prime_index] = diff_matrix_allx[[x_index]][j_index,j_prime_index]/sqrt(sigma_val_x)
+      }}  
+    vec_max <- rep(0, length(x_grid))
+    for (x_index in 1:length(x_grid)){
+      vec_max[x_index] = max(matrix_ratio_allx[[x_index]])
+    }
+    
+    return(max(vec_max))}}
 
 
-
-compute_J_hat <- function(I_hat, x_grid, p_j, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x){
+compute_J_hat <- function(theta_star, I_hat, x_grid, p_j, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x){
   j_index = 1
   J = I_hat[j_index]
   ratio = calcul_ratio(J, j_index, I_hat, x_grid, p_j, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
@@ -637,34 +620,33 @@ compute_J_hat <- function(I_hat, x_grid, p_j, matrix_gamma, matrix_sigma_all_j_a
   return(J)
 }
 
-calcul_ratio<- function(J, J_index, I_hat, x_grid, p_j, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x){
-  vec_ratio_x <- rep(0, length(x_grid))
-  for (x_index in 1:length(x_grid)){
-    vec_ratio_x[x_index] = calcul_ratio_step(J, J_index, I_hat, x_grid[x_index], x_index, p_j, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
-  }
-  return(max(vec_ratio_x))
-}
-
-calcul_ratio_step <- function(J, J_index, I_hat, x, x_index, p_j, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x){# x is a number here
-  res_mat <- matrix(0, length(I_hat), length(I_hat))
+calcul_ratio <- function(J, J_index, I_hat, x_grid, p_j, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x){
+  res_mat <- matrix(0, length_I_hat, length(x_grid))
   
-  #compute h_j(x)
   P_j_on_x <- create_P(x_grid, J, Z, p_j, degree, bool_splines) #on crée la base pour J donné
-  g_hat_J_x <- P_j_on_x%*%matrix_gamma[[J_index]][1:J]
+  if (J>1){
+    g_hat_J_x <- P_j_on_x%*%matrix_gamma[J_index,][1:J]
+  }else{
+    g_hat_J_x <- matrix_gamma[J_index,][1:J]*P_j_on_x}
   
-  #compute sigma_J
-  sigma_j = matrix_sigma_all_j_all_x[J_index, x_index]
+  
+  sigma_J_vect <- matrix_sigma_all_j_all_x[J_index,]
   
   for (J_prime_index in J_index:length(I_hat)){
     J_prime = I_hat[J_prime_index]
     P_j_prime_on_x <- create_P(x_grid, J_prime, Z, p_j, degree, bool_splines)
-    g_hat_J_prime_x <- P_j_prime_on_x%*%matrix_gamma[[J_prime_index]][1:J_prime]
+    if (J>1){
+      g_hat_J_prime_x <- P_j_prime_on_x%*%matrix_gamma[J_prime_index,][1:J_prime]
+    }else{
+      g_hat_J_prime_x <- matrix_gamma[J_index,][1:J_prime]*P_j_prime_on_x}
     
-    sigma_j_prime = matrix_sigma_all_j_all_x[J_prime_index, x_index]
-    sigma_j_j_prime = matrix_sigma_all_j_j2_all_x[[x_index]][J_index, J_prime_index]
-    sigma_val = sigma_j + sigma_j_prime - 2*sigma_j_j_prime
-    
-    res_mat[j_index, j_prime_index] = abs(g_hat_J_x - g_hat_J_prime_x)/sqrt(sigma_val)
+    sigma_J_prime_vect <- matrix_sigma_all_j_all_x[J_prime_index,]
+    for (x_index in 1:length(x_grid)){
+      sigma_J_J_prime <- abs(matrix_sigma_all_j_all_x[J_index,x_index]^{2} + matrix_sigma_all_j_all_x[J_prime_index,x_index]^{2} - 2*matrix_sigma_all_j_j2_all_x[[x_index]][J_index, J_prime_index])
+      denom = sqrt(sigma_J_J_prime)
+      if (denom!=0){
+        res_mat[J_prime_index, x_index] = abs(g_hat_J_prime_x[x_index] - g_hat_J_x[x_index])/(denom)
+      }}
   }
   return(max(res_mat))
 }
@@ -759,36 +741,66 @@ lepski_bootstrap <- function(n_boot,valid_dim,x_grid, W, Z, Y, p_j, bool_splines
     }
     matrix_sigma_all_j_all_x[j_index,] = vec_sigma_j #ligne j prend les valeurs des sigma_j(x) pour toutes les valeurs de x_grid
   }
-  #ok jusqu'ici ensuite problème
-  
-  
+
   #compute the sigma_J,J_2(x) for all values of x
   matrix_sigma_all_j_j2_all_x <- replicate(length(x_grid), matrix(0, length_I_hat, length_I_hat), simplify = FALSE)
   for (j_index in 1:length_I_hat){
     j = I_hat[j_index]
     P_j_on_x <- create_P(x_grid, j, Z, p_j, degree, bool_splines)
-    for (j_prime_index in (j_index+1):length_I_hat){
+    
+    for (j_prime_index in (j_index):length_I_hat){
       j_prime = I_hat[j_prime_index]
       
       #calcul de sigma_j,jprime(x) pour tous les x_grid et ensuite on met dans les matrices
-      U_j_jp <- create_matrix_U(matrix_all_u[j,], matrix_all_u[j_prime,])
+      U_j_jp <- create_matrix_U(matrix_all_u[j_index,], matrix_all_u[j_prime_index,])
       P_j_prime_on_x <- create_P(x_grid, j_prime, Z, p_j, degree, bool_splines)
-      sigma_j_j_prime = t(P_j_on_x)%*%list_M_boot[[j]]%*%U_j_jp%*%t(list_M_boot[[j_prime]])%*%P_j_prime_on_x #vecteur de la taille de x
-      for (x_index in 1:length(x_grid)){
-        matrix_sigma_all_j_j2_all_x[[x_index]][j_index, j_prime_index] = sigma_j_j_prime[x_index]
-      }}}
+      
+      middle_matrix <- list_M_boot[[j_index]]%*%U_j_jp%*%t(list_M_boot[[j_prime_index]])
+      
+      if (j == 1 && j_prime == 1){
+        vec_sigma_j_jprime <- rep(0, length(x_grid))
+        for (x_index in 1:length(x_grid)){
+          vec_sigma_j_jprime[x_index] = middle_matrix*P_j_on_x[x_index]*P_j_prime_on_x[x_index]
+          matrix_sigma_all_j_j2_all_x[[x_index]][j_index, j_prime_index] = vec_sigma_j_jprime[x_index]
+        }
+      }
+      if (j == 1 && j_prime >1){
+        vec_sigma_j_jprime <- rep(0, length(x_grid))
+        for (x_index in 1:length(x_grid)){
+          vec_sigma_j_jprime[x_index] = P_j_on_x[x_index]*(middle_matrix%*%P_j_prime_on_x[x_index,])
+          matrix_sigma_all_j_j2_all_x[[x_index]][j_index, j_prime_index] = vec_sigma_j_jprime[x_index]
+        }
+      }
+      if (j>1 && j_prime == 1){
+        vec_sigma_j_jprime <- rep(0, length(x_grid))
+        for (x_index in 1:length(x_grid)){
+          vec_sigma_j_jprime[x_index] = (P_j_on_x[x_index,]%*%middle_matrix)*P_j_prime_on_x[x_index]
+          matrix_sigma_all_j_j2_all_x[[x_index]][j_index, j_prime_index] = vec_sigma_j_jprime[x_index]
+        }
+      }
+      if (j>1 && j_prime >1){
+        vec_sigma_j_jprime <- rep(0, length(x_grid))
+        for (x_index in 1:length(x_grid)){
+          vec_sigma_j_jprime[x_index] = P_j_on_x[x_index,]%*%(middle_matrix)%*%P_j_prime_on_x[x_index,]
+          matrix_sigma_all_j_j2_all_x[[x_index]][j_index, j_prime_index] = vec_sigma_j_jprime[x_index]
+        }
+      }
+    }}
   
   
   #compute the T stat for each draw of w
   T_i = rep(0, n_boot)
   for (i in 1:n_boot){
-    T_i[i] = T_stat_D(x_grid, Y, Z, W, p_j, degree, bool_splines, I_hat, W_boot_matrix[i,], matrix_gamma, list_M_boot, matrix_sigma_all_j_all_x, matrix_all_u, matrix_sigma_all_j_j2_all_x) 
+    T_i[i] = T_stat_D(x_grid, Y, Z, W, p_j, degree, bool_splines, I_hat, W_boot_matrix[i,], list_M_boot, matrix_sigma_all_j_all_x, matrix_all_u, matrix_sigma_all_j_j2_all_x) 
   }
   alpha = min(0.5, sqrt(log(J_max)/J_max))
   theta = quantile(T_i, probs = 1 - alpha)
   
   J_n_hat = I_hat[length(I_hat)-1] #on prend l'avant dernier pour être le plus petit strict
-  J_hat = compute_J_hat(I_hat, x_grid, p_j, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
+  #à peu près ok jusqu'ici
+  
+  
+  J_hat = compute_J_hat(theta,I_hat, x_grid, p_j, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
   
   J_tilde = min(J_hat, J_n_hat)
   
@@ -796,72 +808,7 @@ lepski_bootstrap <- function(n_boot,valid_dim,x_grid, W, Z, Y, p_j, bool_splines
 }
 
 #tests
-#calcul_s_J(3, simul_3$W, simul_3$Z, simul_3$Y, p_j_trigo_0_1, 0, none) : ok fonctionne aussi pour les splines
-
-data_param_3 = c(20, 0.5, 0.9)
-simul_3 = simulate_data_3(data_param_3, g_sim_3, 2) #utilisent que le cas 2 et 3 dans le papier lapenta
-W <- simul_3$W
-Y <- simul_3$Y
-Z <- simul_3$Z
-
-bool_splines=1
-degree = 3
-
-n = length(W)
-
-J_max = 15
-
-n_boot= 100
-x_grid = seq(min(Z), max(Z), length.out = 30)
-
-#problème avec cette fonction
-matrix_sigma_all_j_j2_all_x <- replicate(length(x_grid), matrix(0, length_I_hat, length_I_hat), simplify = FALSE)
-for (j_index in 1:length_I_hat){ #length_I_hat
-  j = I_hat[j_index]
-  P_j_on_x <- create_P(x_grid, j, Z, p_j, degree, bool_splines)
-  for (j_prime_index in (j_index):length_I_hat){
-    j_prime = I_hat[j_prime_index]
-    
-    #calcul de sigma_j,jprime(x) pour tous les x_grid et ensuite on met dans les matrices
-    U_j_jp <- create_matrix_U(matrix_all_u[j_index,], matrix_all_u[j_prime_index,])
-    P_j_prime_on_x <- create_P(x_grid, j_prime, Z, p_j, degree, bool_splines)
-
-    middle_matrix <- list_M_boot[[j_index]]%*%U_j_jp%*%t(list_M_boot[[j_prime_index]])
-    print(dim(middle_matrix))
-    
-    if (j == 1 && j_prime == 1){
-      vec_sigma_j_jprime <- rep(0, length(x_grid))
-      for (x_index in 1:length(x_grid)){
-        vec_sigma_j_jprime[x_index] = middle_matrix*P_j_on_x[x_index]*P_j_prime_on_x[x_index]
-        matrix_sigma_all_j_j2_all_x[[x_index]][j_index, j_prime_index] = vec_sigma_j_jprime[j_prime_index]
-      }
-    }
-    #if (j == 1 && j_prime >1){
-      #vec_sigma_j_jprime <- rep(0, length(x_grid))
-      #for (x_index in 1:length(x_grid)){
-      #  vec_sigma_j_jprime[x_index] = middle_matrix*P_j_on_x[x_index]*sum(P_j_prime_on_x[x_index,])
-
-      #  print(vec_sigma_j_jprime[j_prime_index])
-      #  matrix_sigma_all_j_j2_all_x[[x_index]][j_index, j_prime_index] = vec_sigma_j_jprime[j_prime_index]
-      #}
-    #}
-    #if (j>1 && j_prime == 1){
-      #for (x_index in 1:length(x_grid)){
-      #  res = middle_matrix*P_j_on_x[x_index,]*P_j_prime_on_x[x_index]
-      #  matrix_sigma_all_j_j2_all_x[[x_index]][j_index, j_prime_index] = vec_sigma_j_jprime[j_prime_index]
-      #}
-    #}
-    if (j>1 && j_prime >1){
-      for (x_index in 1:length(x_grid)){
-        res <- P_j_on_x[x_index,]%*%(middle_matrix)%*%P_j_prime_on_x[x_index,]
-        matrix_sigma_all_j_j2_all_x[[x_index]][j_index, j_prime_index] = vec_sigma_j_jprime[j_prime_index]
-      }
-    }
-  }}
-
-
-
-
+lepski_bootstrap(n_boot,valid_dim,x_grid, W, Z, Y, none, bool_splines, degree) #ok fonctionne avec splines
 
 
 
