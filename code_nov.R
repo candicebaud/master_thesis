@@ -3,6 +3,8 @@ library(splines)
 library(MASS)
 library(caret)
 
+
+
 #### Estimate the gamma in the series estimation ####
 
 kernel_functions <- function(x,ker='normal',knorm="sq")
