@@ -2,11 +2,9 @@
 library(splines)
 library(MASS)
 library(caret)
-
-
+library(expm)
 
 #### Estimate the gamma in the series estimation ####
-
 kernel_functions <- function(x,ker='normal',knorm="sq")
 {
   # Densities such as the integral of the square of the density is one if knorm is sq 
@@ -46,7 +44,7 @@ create_W <- function(W, h=1 ,ker='normal',knorm="sq",remove=FALSE)
   wmat <-  kernel_functions(mat / h,ker=ker,knorm=knorm)/h; # kernel smoothing 
   # principle diagonal of the matrix replaced with zeros
   if (remove==TRUE) wmat <-  wmat - diag(diag(wmat))
-  return(wmat/(n**2))
+  return(wmat/(n_w**2))
 }
 
 # splines
@@ -374,29 +372,31 @@ optimization_CV_M <- function(Z, W, Y, vect_J_to_test, p_train, p_j, bool_spline
 
 
 #simulation 1 
-data_param_1 = c(1250, 0.75)
-simul_1 <- simulate_data_1(data_param_1, g_sim_1, none)
-vect_J_to_test = seq(3, 10, by = 1)
-x = seq(min(Z), max(Z), by = 0.1)
-optimization_CV_M(simul_1$Z, simul_1$W, simul_1$Y, vect_J_to_test, 0.6, p_j_trigo_0_1, 0, none, x, none, g_sim_1)
+#data_param_1 = c(1250, 0.75)
+#simul_1 <- simulate_data_1(data_param_1, g_sim_1, none)
+#vect_J_to_test = seq(3, 10, by = 1)
+#x = seq(min(Z), max(Z), by = 0.1)
+#optimization_CV_M(simul_1$Z, simul_1$W, simul_1$Y, vect_J_to_test, 0.6, p_j_trigo_0_1, 0, none, x, none, g_sim_1)
 
-vect_J_to_test = seq(3, 10, by = 1)
-x = seq(min(Z), max(Z), by = 0.1)
-optimization_CV_M(simul_1$Z, simul_1$W, simul_1$Y, vect_J_to_test, 0.6, none, 1, 3, x, none, g_sim_1)
+#vect_J_to_test = seq(3, 10, by = 1)
+#x = seq(min(Z), max(Z), by = 0.1)
+#optimization_CV_M(simul_1$Z, simul_1$W, simul_1$Y, vect_J_to_test, 0.6, none, 1, 3, x, none, g_sim_1)
 
 
 #simulation 3 : avec base trigo, pas l'impression que ça fonctionne de ouf
 data_param_3 = c(200, 0.5, 0.9)
 simul_3 = simulate_data_3(data_param_3, g_sim_3, 2) 
 
+#vect_J_to_test = seq(3, 20, by = 1)
+#x = seq(min(Z), max(Z), by = 0.1)
+#optimization_CV_M(simul_3$Z, simul_3$W, simul_3$Y, vect_J_to_test, 0.8, p_j_trigo_0_1, 0, none, x, 2, g_sim_3)
+
+Z <- simul_3$Z
+W <- simul_3$W
+Y <- simul_3$Y
 vect_J_to_test = seq(3, 20, by = 1)
 x = seq(min(Z), max(Z), by = 0.1)
-optimization_CV_M(simul_3$Z, simul_3$W, simul_3$Y, vect_J_to_test, 0.8, p_j_trigo_0_1, 0, none, x, 2, g_sim_3)
-
-
-vect_J_to_test = seq(3, 20, by = 1)
-x = seq(min(Z), max(Z), by = 0.1)
-optimization_CV_M(simul_3$Z, simul_3$W, simul_3$Y, vect_J_to_test, 0.8, none, 1, 3, x, 2, g_sim_3)
+J_opt_CV_spline = optimization_CV_M(Z, W, Y, vect_J_to_test, 0.8, none, 1, 3, x, 2, g_sim_3)
 
 
 #### Selection of J by cross-validation on the MSE ####
@@ -464,43 +464,36 @@ optimization_CV_MSE <- function(Z, W, Y, vect_J_to_test, p_train, p_j, bool_spli
 }
 
 #simulation 1 
-data_param_1 = c(1250, 0.75)
-simul_1 <- simulate_data_1(data_param_1, g_sim_1, none)
-vect_J_to_test = seq(3, 10, by = 1)
-x = seq(min(Z), max(Z), by = 0.1)
-optimization_CV_MSE(simul_1$Z, simul_1$W, simul_1$Y, vect_J_to_test, 0.6, p_j_trigo_0_1, 0, none, x, none, g_sim_1)
+#data_param_1 = c(1250, 0.75)
+#simul_1 <- simulate_data_1(data_param_1, g_sim_1, none)
+#vect_J_to_test = seq(3, 10, by = 1)
+#x = seq(min(Z), max(Z), by = 0.1)
+#optimization_CV_MSE(simul_1$Z, simul_1$W, simul_1$Y, vect_J_to_test, 0.6, p_j_trigo_0_1, 0, none, x, none, g_sim_1)
 
-vect_J_to_test = seq(3, 10, by = 1)
-x = seq(min(Z), max(Z), by = 0.1)
-optimization_CV_MSE(simul_1$Z, simul_1$W, simul_1$Y, vect_J_to_test, 0.6, none, 1, 3, x, none, g_sim_1)
+#vect_J_to_test = seq(3, 10, by = 1)
+#x = seq(min(Z), max(Z), by = 0.1)
+#optimization_CV_MSE(simul_1$Z, simul_1$W, simul_1$Y, vect_J_to_test, 0.6, none, 1, 3, x, none, g_sim_1)
 
 
 #simulation 3 
-data_param_3 = c(200, 0.5, 0.9)
-simul_3 = simulate_data_3(data_param_3, g_sim_3, 2) 
+#data_param_3 = c(200, 0.5, 0.9)
+#simul_3 = simulate_data_3(data_param_3, g_sim_3, 2) 
 
-vect_J_to_test = seq(3, 20, by = 1)
-x = seq(min(Z), max(Z), by = 0.1)
-optimization_CV_MSE(simul_3$Z, simul_3$W, simul_3$Y, vect_J_to_test, 0.8, p_j_trigo_0_1, 0, none, x, 2, g_sim_3)
+#vect_J_to_test = seq(3, 20, by = 1)
+#x = seq(min(Z), max(Z), by = 0.1)
+#optimization_CV_MSE(simul_3$Z, simul_3$W, simul_3$Y, vect_J_to_test, 0.8, p_j_trigo_0_1, 0, none, x, 2, g_sim_3)
 
 
-vect_J_to_test = seq(3, 20, by = 1)
-x = seq(min(Z), max(Z), by = 0.1)
-optimization_CV_MSE(simul_3$Z, simul_3$W, simul_3$Y, vect_J_to_test, 0.8, none, 1, 3, x, 2, g_sim_3)
+#vect_J_to_test = seq(3, 20, by = 1)
+#x = seq(min(Z), max(Z), by = 0.1)
+J_opt_CV_MSE_splines = optimization_CV_MSE(Z, W, Y, vect_J_to_test, 0.8, none, 1, 3, x, 2, g_sim_3)
 
 
 
 
 #### Selection of J by Lepski 1 (Comte) #### 
 
-
-
 #### Lepski with bootstrap ####
-
-
-
-#install.packages("expm")
-library(expm)
 calcul_s_J <- function(J, W, Z, Y, p_j, bool_splines, degree){
   n = length(W)
   
@@ -565,6 +558,7 @@ create_matrix_U <- function(u_j, u_j_prime){
   
 T_stat_D <- function(x_grid, Y, Z, W, p_j, degree, bool_splines, I_hat, w_vector, list_M_boot, matrix_sigma_all_j_all_x, matrix_all_u, matrix_sigma_all_j_j2_all_x){
   I_hat = sort(I_hat)
+  length_I_hat = length(I_hat)
   
   diff_matrix_allx <- replicate(length(x_grid), matrix(0, length_I_hat, length_I_hat), simplify = FALSE)#matrice des diff de D_j
   matrix_ratio_allx <-  replicate(length(x_grid), matrix(0, length_I_hat, length_I_hat), simplify = FALSE)
@@ -623,6 +617,7 @@ compute_J_hat <- function(theta_star, I_hat, x_grid, p_j, matrix_gamma, matrix_s
 }
 
 calcul_ratio <- function(J, J_index, I_hat, x_grid, p_j, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x){
+  length_I_hat = length(I_hat)
   res_mat <- matrix(0, length_I_hat, length(x_grid))
   
   P_j_on_x <- create_P(x_grid, J, Z, p_j, degree, bool_splines) #on crée la base pour J donné
@@ -692,10 +687,10 @@ lepski_bootstrap <- function(n_boot,valid_dim,x_grid, W, Z, Y, p_j, bool_splines
   #}
   
   #J_max = J
-  J_max = 15 #arbitraire pour l'instant
+  J_max = 20 #arbitraire pour l'instant
   
   #create I_hat
-  I_hat = seq(as.integer(0.1 * log(J_max)^2), as.integer(J_max), by = 1)
+  I_hat = seq(as.integer(0.1 * (log(J_max)^2))+1, as.integer(J_max), by = 1) #on commence au moins à 2 parce que 1 c'est pas une bonne solution
   I_hat = sort(I_hat[sapply(I_hat,valid_dim)]) #select only the valid dimensions
   length_I_hat = length(I_hat)
   
@@ -810,7 +805,10 @@ lepski_bootstrap <- function(n_boot,valid_dim,x_grid, W, Z, Y, p_j, bool_splines
 }
 
 #tests
-lepski_bootstrap(n_boot,valid_dim,x_grid, W, Z, Y, none, bool_splines, degree) #ok fonctionne avec splines
+n_boot = 100
+bool_splines = 1
+degree = 3
+J_opt_lepski_splines = lepski_bootstrap(n_boot,valid_dim,x, W, Z, Y, none, bool_splines, degree) #ok fonctionne avec splines
 
 
 
@@ -820,66 +818,104 @@ lepski_bootstrap(n_boot,valid_dim,x_grid, W, Z, Y, none, bool_splines, degree) #
 
 #### Selection of J by Lepski 2 (Chen) #### 
 lepski_chen <- function(c_0,W,Z,Y,p_j,bool_splines,degree, valid_dim){
-  prev_ratio = 0
-  new_ratio = 1000
-  J = 1
+  n = length(W)
   
-  #find J_max
-  while ((prev_ratio>10 || new_ratio<= 10)){
-    s_hat_J = calcul_s_J(todo) #TODO
-    prev_ratio = new_ratio
-    new_ratio = s_hat_J*J*sqrt(log(J))/sqrt(n) 
-    J = J+1
-    while (!valid_dim(J)){# as long as the value of J is not valid we look for another one
-      J = J+1
-    }}
+  #s_1 = 1/calcul_s_J(1, W, Z, Y, p_j, bool_splines, degree)
+  #s_2 = 1/calcul_s_J(2, W, Z, Y, p_j, bool_splines, degree)
+  #prev_ratio = s_1*1*sqrt(log(1))/sqrt(n) 
+  #new_ratio = s_2*2*sqrt(log(2))/sqrt(n)
   
-  J_max = J
+  #if ((prev_ratio <= 10 && new_ratio > 10)) {
+  #  J = 2
+  #} else {
+  #  J = 2
+  #  while (!(prev_ratio <= 10 && new_ratio > 10)) {
+  #    print(c(prev_ratio, new_ratio))
+  #    J = J + 1
   
-  I_hat = seq(as.integer(0.1 * log(J_max)^2), as.integer(J_max) + 1, by = 1)
-  I_hat = sort(I_hat[valid_dim(I_hat)]) #select only the valid dimensions
+  # Look for a valid J
+  #    while (!valid_dim(J)) {  
+  #      J = J + 1}
   
-  index = 1
-  J = I_hat[index]
+  # Calculate s_hat_J and update ratios
+  #    s_hat_J = calcul_s_J(J, W, Z, Y, p_j, bool_splines, degree)
+  #    prev_ratio = new_ratio
+  #    new_ratio = s_hat_J * J * sqrt(log(J)) / sqrt(n)
+  #  }
+  #}
+  
+  #J_max = J
+  
+  J_max = 20 
+  
+  I_hat = seq(as.integer(0.1 * (log(J_max)^2))+1, as.integer(J_max), by = 1) #on commence au moins à 2 parce que 1 c'est pas une bonne solution
+  I_hat = sort(I_hat[sapply(I_hat,valid_dim)]) #select only the valid dimensions
+  length_I_hat = length(I_hat)
+  
+  j_index = 1
+  J = I_hat[j_index]
   condition = FALSE
-  while (J %in% I_hat && condition == FALSE){
-    for (J_prime in I_hat){
-      if (J_prime>J){
-        #compute g_J and g_J'
-        gamma_J <- estimation_gamma(J,W,Z,Y,p_j, bool_splines, degree)
-        gamma_J_prime <- estimation_gamma(J_prime,W,Z,Y,p_j, bool_splines, degree)
-        
-        #compute V_hat(J) and V_hat(J')
-        V_J = V_hat_J(J)
-        V_J_prime = V_hat_J(J_prime)
-        
-        #compute |g_J - g_J'| (a)
-        a = difference_norm(g_J, g_J_prime)
-        
-        #compute c_0(V_hat(J)+V_hat(J')) (b)
-        b = c_0*(V_J + V_J_prime)
-        
-        if(a<b){
-          condition = TRUE}
-        else{
-          condition = FALSE
-        }  
-        index = index + 1
-        J = I_hat[index]
-      }
-      else{
-        index = index + 1
-        J = I_hat[index]
-      }}}
+  while ((J<=J_max && condition = FALSE)){
+    gamma_J <- estimation_gamma(J,W,Z,Y,p_j, bool_splines, degree)
+    V_J = V_hat_J(J)
+    for (j_prime_index in j_index:J_max){
+      gamma_J_prime <- estimation_gamma(J_prime,W,Z,Y,p_j, bool_splines, degree)
+      V_J_prime = V_hat_J(J_prime)
+      
+      a = difference_norm(gamma_J, gamma_J_prime, J, J_prime, Z, p_j, bool_splines, degree, x_grid)
+      b = c_0*(V_J + V_J_prime)}
+    
+    if(a<b){
+      condition = TRUE}
+    else{
+      condition = FALSE
+    }  
+    
+    j_index = j_index + 1
+    J = I_hat[j_index]
+    
+    
+  }
   J_opt = J
   return(J_opt)
-}
-
-
-
-valid_dim_splines <- function(J){#checks if J is a valid dimension in Tau  
+  }
   
-}
+  
+  # à faire à partir d'ici
+  #while (J %in% I_hat && condition == FALSE){
+  #  for (J_prime in I_hat){
+  #    if (J_prime>J){
+  #      #compute g_J and g_J'
+  #      gamma_J <- estimation_gamma(J,W,Z,Y,p_j, bool_splines, degree)
+  #      gamma_J_prime <- estimation_gamma(J_prime,W,Z,Y,p_j, bool_splines, degree)
+        
+        #compute V_hat(J) and V_hat(J')
+  #      V_J = V_hat_J(J)
+  #      V_J_prime = V_hat_J(J_prime)
+        
+        #compute |g_J - g_J'| (a)
+   #     a = difference_norm(g_J, g_J_prime)
+        
+        #compute c_0(V_hat(J)+V_hat(J')) (b)
+   #     b = c_0*(V_J + V_J_prime)
+        
+   #     if(a<b){
+   #        condition = TRUE}
+   #     else{
+   #       condition = FALSE
+   #     }  
+   #     index = index + 1
+   #     J = I_hat[index]
+   #   }
+   #   else{
+   # #    index = index + 1
+    #    J = I_hat[index]
+    #  }}}
+ # J_opt = J
+ # return(J_opt)}
+
+
+
 
 V_hat_J <- function(J, n, s_J_hat){
   return (sqrt(log(n)/n)/s_J_hat) #the one in our case 
