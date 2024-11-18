@@ -491,8 +491,6 @@ J_opt_CV_MSE_splines = optimization_CV_MSE(Z, W, Y, vect_J_to_test, 0.8, none, 1
 
 
 
-#### Selection of J by Lepski 1 (Comte) #### 
-
 #### Lepski with bootstrap ####
 calcul_s_J <- function(J, W, Z, Y, p_j, bool_splines, degree){
   n = length(W)
@@ -794,9 +792,7 @@ lepski_bootstrap <- function(n_boot,valid_dim,x_grid, W, Z, Y, p_j, bool_splines
   theta = quantile(T_i, probs = 1 - alpha)
   
   J_n_hat = I_hat[length(I_hat)-1] #on prend l'avant dernier pour être le plus petit strict
-  #à peu près ok jusqu'ici
-  
-  
+
   J_hat = compute_J_hat(theta,I_hat, x_grid, p_j, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
   
   J_tilde = min(J_hat, J_n_hat)
@@ -846,87 +842,59 @@ lepski_chen <- function(c_0,W,Z,Y,p_j,bool_splines,degree, valid_dim){
   
   #J_max = J
   
-  J_max = 20 
+  J_max = 14 
   
   I_hat = seq(as.integer(0.1 * (log(J_max)^2))+1, as.integer(J_max), by = 1) #on commence au moins à 2 parce que 1 c'est pas une bonne solution
   I_hat = sort(I_hat[sapply(I_hat,valid_dim)]) #select only the valid dimensions
   length_I_hat = length(I_hat)
   
-  j_index = 1
-  J = I_hat[j_index]
+  J_index = 1
+  J = I_hat[J_index]
   condition = FALSE
-  while ((J<=J_max && condition = FALSE)){
+  while ((J_index<length(I_hat) && condition == FALSE)){
     gamma_J <- estimation_gamma(J,W,Z,Y,p_j, bool_splines, degree)
-    V_J = V_hat_J(J)
-    for (j_prime_index in j_index:J_max){
-      gamma_J_prime <- estimation_gamma(J_prime,W,Z,Y,p_j, bool_splines, degree)
-      V_J_prime = V_hat_J(J_prime)
-      
+    s_J <- calcul_s_J(J, W, Z, Y, p_j, bool_splines, degree)
+    V_J = V_hat_J(J, n, s_J)
+    J_prime_index = J_index + 1 
+    J_prime = I_hat[J_prime_index]
+    while ((J_prime_index < length(I_hat) && condition == FALSE)){
+      gamma_J_prime <- estimation_gamma(J_prime, W, Z, Y,p_j, bool_splines, degree)
+      s_J_prime <- calcul_s_J(J_prime, W, Z, Y, p_j, bool_splines, degree)
+      V_J_prime = V_hat_J(J, n, s_J_prime)
       a = difference_norm(gamma_J, gamma_J_prime, J, J_prime, Z, p_j, bool_splines, degree, x_grid)
-      b = c_0*(V_J + V_J_prime)}
-    
-    if(a<b){
-      condition = TRUE}
-    else{
-      condition = FALSE
-    }  
-    
-    j_index = j_index + 1
-    J = I_hat[j_index]
-    
-    
+      b = c_0*(V_J + V_J_prime)
+      if(a<b){
+        condition = TRUE}
+      else{
+        condition = FALSE}
+      J_prime_index = J_prime_index + 1
+      J_prime = I_hat[J_prime_index]}
+    J_index = J_index + 1
+    J = I_hat[J_index]
   }
   J_opt = J
   return(J_opt)
-  }
+}
+
+#algo tourne : manque à définir correctement la différence de normes et le J_max 
   
-  
-  # à faire à partir d'ici
-  #while (J %in% I_hat && condition == FALSE){
-  #  for (J_prime in I_hat){
-  #    if (J_prime>J){
-  #      #compute g_J and g_J'
-  #      gamma_J <- estimation_gamma(J,W,Z,Y,p_j, bool_splines, degree)
-  #      gamma_J_prime <- estimation_gamma(J_prime,W,Z,Y,p_j, bool_splines, degree)
-        
-        #compute V_hat(J) and V_hat(J')
-  #      V_J = V_hat_J(J)
-  #      V_J_prime = V_hat_J(J_prime)
-        
-        #compute |g_J - g_J'| (a)
-   #     a = difference_norm(g_J, g_J_prime)
-        
-        #compute c_0(V_hat(J)+V_hat(J')) (b)
-   #     b = c_0*(V_J + V_J_prime)
-        
-   #     if(a<b){
-   #        condition = TRUE}
-   #     else{
-   #       condition = FALSE
-   #     }  
-   #     index = index + 1
-   #     J = I_hat[index]
-   #   }
-   #   else{
-   # #    index = index + 1
-    #    J = I_hat[index]
-    #  }}}
- # J_opt = J
- # return(J_opt)}
-
-
-
 
 V_hat_J <- function(J, n, s_J_hat){
   return (sqrt(log(n)/n)/s_J_hat) #the one in our case 
 }
 
-difference_norm <- function(g_J, g_J_prime){
-  # TO DO
+difference_norm <- function(gamma_J, gamma_J_prime, J, J_prime, Z, p_j, bool_splines, degree, x_grid){
+  return(1000*(J+J_prime))
 }
 
+W <- simul_3$W
+Y <- simul_3$Y
+Z <- simul_3$Z
+
+J_opt_lepski <- lepski_chen(1, W,Z,Y,none,1,3, valid_dim )
 
 
+#### Selection of J by Lepski 1 (Comte) #### 
 
 
 
