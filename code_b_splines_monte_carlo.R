@@ -47,153 +47,57 @@ create_W <- function(W, h=1 ,ker='normal',knorm="sq",remove=FALSE)
   return(wmat/(n_w**2))
 }
 
-# splines
-create_P_splines <- function(x, Z, J, degree){
-  knots = quantile(Z, probs = seq(0, 1, length.out = J))
-  return(bs(x, knots = knots, degree = degree, intercept = FALSE)[,1:length(knots)+degree-1])}
+#ancienne manière de générer la base avec des noeuds sur les quantiles
+#create_P_splines <- function(x, Z, J, degree){
+#  knots = quantile(Z, probs = seq(0, 1, length.out = J))
+#  return(bs(x, knots = knots, degree = degree, intercept = FALSE)[,1:length(knots)+degree-1])}
 
-#trigo
-p_j_trigo_0_1 <-function(j, J, z){
-  a = 2*pi*j*z
-  #print(a)
-  if (j==1){
-    return(1)
+#nouvelle manière : dyadic B splines
+create_dyadic_interval <- function(nb_pts, a, b) {
+  # Base case: if nb_pts is 0, return only the endpoints [a, b]
+  if (nb_pts == 0) {
+    return(c(a, b))
   }
-  if (j%%2 == 0){
-    cos_val = cos(a)
-    return(sqrt(2)*cos_val)
+  # Recursively calculate the inner points for nb_pts - 1
+  inner_points <- create_dyadic_interval(nb_pts - 1, a, b)
+  # Compute the midpoints between consecutive points
+  mid_points <- (inner_points[-length(inner_points)] + inner_points[-1]) / 2
+  # Combine the points: original inner points and midpoints, sorted
+  combined_points <- sort(c(inner_points, mid_points))
+  return(combined_points)
+}
+
+create_dyadic_P_splines <- function(x, Z, J, degree){
+  n_dyadic = log(J - degree +1)/log(2)
+  if (as.integer(n_dyadic)!=n_dyadic){
+    print("Error, dimension is not valid")
   }
   else{
-    sin_val = sin(a)
-    return(sqrt(2)*sin_val)
-  }
-}
+    a = min(Z)
+    b = max(Z)
+    n_pts = 2^{n_dyadic} +1 
+    knots = create_dyadic_interval(n_dyadic, a, b)[2:2^{n_dyadic}]
+    return(bs(x, knots = knots, degree = degree, intercept = FALSE))
+    }}
 
-#hist
-p_j_hist_0_1 <-function(j, J, z){
-  l = length(z)
-  if (l>1){
-    res = rep(0, l)
-    for (i in 1:l){
-      if (z[i] >= (j - 1) / J && z[i] < j / J) {
-        res[i] = sqrt(J)
-      } else {
-        res[i] = 0
-      }
-    }
-    return(res)}
-  else{
-    if (z >= (j - 1) / J && z < j / J) {
-      return(sqrt(J))
-    } else{
-      return(0)
-    }
-  }
-}
-
-# generalize for interval [a,b] : en fait ici on peut dire qu'on normalise Z entre 0 et 1
-basis_a_b <-function(j, J, z, a, b, p_j_0_1){
-  return(p_j_0_1(j,J,((z-a)/(b-a)))/sqrt(b-a))
-}
-
-# create P
-create_P <- function(z_eval, J, Z, p_j, degree, spline_bool){
-  n = length(Z)
-  a = min(Z)
-  b = max(Z)
-  P = matrix(0, n, J)
-  if (spline_bool == 0){
-    for (j in 1:J){
-      if (a!=b){
-        for (i in 1:n){
-          P[i,j] = basis_a_b(j, J, Z[i], a, b, p_j)}}
-      else{
-        P[i,j] = p_j(j, J, Z[i])
-      }
-    }
-  }
-  else{
-    P <- create_P_splines(z_eval, Z, J, degree)
-  }
-  return(P)
-}
 
 # compute gamma_hat
-estimation_gamma <- function(J, W, Z, Y, p_j, bool_splines, degree){
+estimation_gamma <- function(J, W, Z, Y, degree){ # J = (2^{l}-1) + degree
   n = length(Z)
-  a = min(Z)
-  b = max(Z)
   #compute Omega
   Omega <- create_W(W)
   
   #compute P
-  P <- create_P(Z, J, Z, p_j, degree, bool_splines)
-  
+  P <- create_dyadic_P_splines(Z, Z, J, degree)
   #compute gamma
   gamma_step = t(P)%*%Omega%*%Y
   gamma_step_invert = solve(t(P)%*%Omega%*%P)
   gamma_hat = gamma_step_invert%*%gamma_step
-  
   return(gamma_hat)
 }
 
-# Compute g_hat
-g_hat <- function(z, J, p_j, gamma_hat, a, b){
-  p_j_vector = rep(0, J)
-  for (j in 1:J){
-    p_j_vector[j] = basis_a_b(j, J, z, a, b, p_j)
-  }
-  return(sum(gamma_hat*p_j_vector))
-}
 
-
-#### Simulation 1 from Chen ####
-g_sim_1 <- function(z, case){
-  return(sin(4*z)*log(z))
-}
-
-simulate_data_1 <- function(data_param, g_sim, case){
-  n = data_param[1]
-  corr = data_param[2]
-  
-  U_V = mvrnorm(n, mu = c(0, 0), Sigma = matrix(c(1, corr, corr, 1),ncol = 2))
-  
-  U = U_V[,1]
-  V = U_V[,2]
-  X = rnorm(n, 0, 1)
-  W = pnorm(X, 0, 1)
-  D = rbinom(n, 1, 0.5)
-  Z = pnorm(D*(X+V)+(1-D)*V)
-
-  Y = g_sim(Z, none) + U
-  
-  return(list(U = U, V = V, X = X, W = W, D = D, Z = Z, Y = Y))
-}
-
-#data_param_1 = (n, corr)
-n = 1250 #2500, 5000, 10 000
-corr = 0.75
-data_param_1 = c(n, corr)
-
-simul_1 = simulate_data_1(data_param_1, g_sim_1, none) 
-
-
-#### Simulation 2 from Chen ####
-n = 1250 #2500, 5000, 10 000
-Z = runif(n,0,1)
-U = rnorm(n,0,1)
-g_sim_2 <- function(z, case){
-  return(sin(15*pi*z)*cos(z))
-}
-
-Y = g_sim_2(Z,none) + U
-
-#attention ici pas d'instrument : à réfléchir
-
-
-
-
-#### Simulation 3 #### 
+#### Data simulation #### 
 simulate_data_3 <- function(data_param, g_sim, case){
   n = data_param[1]
   rhoev = data_param[2]
@@ -233,41 +137,36 @@ g_sim_3 <- function(x,case)
 #rhoev = 0.5 #0.8, 0.8
 #rhowz = 0.9 #0.9, 0.7
 
-data_param_3 = c(200, 0.5, 0.9)
+data_param_3 = c(1000, 0.5, 0.9)
 simul_3 = simulate_data_3(data_param_3, g_sim_3, 2) #utilisent que le cas 2 et 3 dans le papier lapenta
-
+W <- simul_3$W
+Y <- simul_3$Y
+Z <- simul_3$Z
 
 #### Selection of J by cross-validation on M ####
-calcul_M_g_hat <- function(gamma_hat, J, Z, Y, W, p_j_hat, bool_splines, degree){
+calcul_M_g_hat <- function(gamma_hat, J, Z, Y, W, degree){
   Omega <- create_W(W)
   M = 0 
   a = min(Z)
   b = max(Z)
   n = length(Z)
   g_hat_on_Z <- rep(0, n)
-  if (bool_splines == 0){
-    for (i in 1:n){
-      g_hat_on_Z = g_hat(Z[i], J, p_j_hat, gamma_hat, a, b)
-    }}
-  else{
-    basis <- create_P_splines(Z, Z, J, degree)
-    g_hat_on_Z <- basis%*%gamma_hat
-  }
-  
+  basis <- create_dyadic_P_splines(Z, Z, J, degree)
+  g_hat_on_Z <- basis%*%gamma_hat
   for (i in 1:n){
     for (j in 1:n){
       M = M + (Y[i] - g_hat_on_Z[i])*(Y[j] - g_hat_on_Z[j])*Omega[i,j]
     }
-    return(M/(n**2))
-  }}
+  }
+  return(M/(n**2))}
 
-
-calcul_M_true_g <- function(g, J, Z, Y, W){
+calcul_M_true_g <- function(g, J, Z, Y, W, case){
   M = 0
+  n = length(Z)
   Omega <- create_W(W)
   for (i in 1:n){
     for (j in 1:n){
-      M = M + (Y[i] - g(Z[i]))*(Y[j] - g(Z[j]))*Omega[i,j]
+      M = M + (Y[i] - g(Z[i], case))*(Y[j] - g(Z[j], case))*Omega[i,j]
     }
     return(M/(n**2))
   }}
@@ -281,8 +180,6 @@ calcul_M_g_hat_test_sample <- function(g_hat_on_Z_test, Omega, n_test, Y_test){
     return(M/(n_test**2))
   }}
 
-
-#we want to minimize M so we choose J such that M is minimal
 sample_train_test <- function(Z, Y, W, p_train){
   # Create a single data frame with all variables
   df <- data.frame(Z = Z, Y = Y, W = W)
@@ -307,7 +204,7 @@ sample_train_test <- function(Z, Y, W, p_train){
   ))
 }
 
-optimization_CV_M <- function(Z, W, Y, vect_J_to_test, p_train, p_j, bool_splines, degree, x_plot, case, true_g){
+optimization_CV_M <- function(Z, W, Y, vect_J_to_test, p_train, degree, x_grid){
   gamma_hat_list <- vector("list", length(vect_J_to_test))
   a = min(Z)
   b = max(Z)
@@ -325,82 +222,51 @@ optimization_CV_M <- function(Z, W, Y, vect_J_to_test, p_train, p_j, bool_spline
   n_train <- length(Z_train)
   
   # compute gamma_hat_train and g_hat_train for the training set
-  for (j in 1:length(vect_J_to_test)){
+  for (j_index in 1:length(vect_J_to_test)){
+    J = vect_J_to_test[j_index]
+    print(J)
     #compute gamma_hat_train
-    gamma_hat <- estimation_gamma(vect_J_to_test[j],W_train,Z_train,Y_train,p_j, bool_splines, degree)
-    gamma_hat_list[[j]] <- gamma_hat
+    gamma_hat <- estimation_gamma(J,W_train,Z_train,Y_train,degree)
+    gamma_hat_list[[j_index]] <- gamma_hat
     
     # compute the prediction of g_hat_train on the test set 
     n_val <- length(Z_validation)
-    if (bool_splines == 0){ 
-      g_hat_on_Z_val = rep(0, n_val)
-      for (i in 1:n_val){
-        g_hat_on_Z_val[i] <- g_hat(Z_validation[i], vect_J_to_test[j], p_j, gamma_hat, a, b)
-      }}
-    else{
-      basis <- create_P_splines(Z_validation, Z_train, vect_J_to_test[j], degree)
-      g_hat_on_Z_val <-  basis%*%gamma_hat
-    }
+    basis <- create_dyadic_P_splines(Z_validation, Z_train, J, degree)
+    g_hat_on_Z_val <-  basis%*%gamma_hat
     
     # compute M and store it 
     Omega_val <- create_W(W_validation)
-    M_values[j] <- calcul_M_g_hat_test_sample(g_hat_on_Z_val, Omega_val, n_val, Y_validation)
+    M_values[j_index] <- calcul_M_g_hat_test_sample(g_hat_on_Z_val, Omega_val, n_val, Y_validation)
   }
   
   # return J corresponding to the smallest MSE
   J_opt = vect_J_to_test[which.min(M_values)]
-  print(c(M_values, J_opt))
-  gamma_hat <- estimation_gamma(J_opt,W,Z,Y,p_j, bool_splines, degree)
+  #print(c(M_values, J_opt))
   
-  g_hat_on_x_opt = rep(0, length(x_plot))
-  if (bool_splines == 0){ 
-    for (i in 1:length(x_plot)){
-      g_hat_on_x_opt[i] <- g_hat(x_plot[i], J_opt, p_j, gamma_hat, a, b)
-    }}
-  else{
-    basis <- create_P_splines(x_plot, Z, J_opt, degree)
-    g_hat_on_x_opt <- basis%*%gamma_hat
-  }
+  #evaluate hat_g_hat_J on a grid x
+  gamma_hat <- estimation_gamma(J_opt,W,Z,Y,degree)
   
-  g_on_x = true_g(x_plot, case)
-  plot(x_plot, g_hat_on_x_opt, type = 'l', col = 'black')
-  lines(x_plot, g_on_x, type = 'l', col = 'green')
+  g_hat_on_x_opt = rep(0, length(x_grid))
+  basis <- create_dyadic_P_splines(x_grid, Z, J_opt, degree)
+  g_hat_on_x_opt <- basis%*%gamma_hat
+
+  #g_on_x = true_g(x_plot, case)
+  #plot(x_plot, g_hat_on_x_opt, type = 'l', col = 'black')
+  #lines(x_plot, g_on_x, type = 'l', col = 'green')
   
-  return(J_opt)
+  return(list(J_opt = J_opt, gamma_hat_j_opt = gamma_hat, g_hat_on_x_opt = g_hat_on_x_opt, gamma_hat_list = gamma_hat_list, M_values = M_values))
   
 }
 
-
-#simulation 1 
-#data_param_1 = c(1250, 0.75)
-#simul_1 <- simulate_data_1(data_param_1, g_sim_1, none)
-#vect_J_to_test = seq(3, 10, by = 1)
-#x = seq(min(Z), max(Z), by = 0.1)
-#optimization_CV_M(simul_1$Z, simul_1$W, simul_1$Y, vect_J_to_test, 0.6, p_j_trigo_0_1, 0, none, x, none, g_sim_1)
-
-#vect_J_to_test = seq(3, 10, by = 1)
-#x = seq(min(Z), max(Z), by = 0.1)
-#optimization_CV_M(simul_1$Z, simul_1$W, simul_1$Y, vect_J_to_test, 0.6, none, 1, 3, x, none, g_sim_1)
-
-
-#simulation 3 : avec base trigo, pas l'impression que ça fonctionne de ouf
-data_param_3 = c(200, 0.5, 0.9)
-simul_3 = simulate_data_3(data_param_3, g_sim_3, 2) 
-
-#vect_J_to_test = seq(3, 20, by = 1)
-#x = seq(min(Z), max(Z), by = 0.1)
-#optimization_CV_M(simul_3$Z, simul_3$W, simul_3$Y, vect_J_to_test, 0.8, p_j_trigo_0_1, 0, none, x, 2, g_sim_3)
-
-Z <- simul_3$Z
-W <- simul_3$W
-Y <- simul_3$Y
-vect_J_to_test = seq(3, 20, by = 1)
-x = seq(min(Z), max(Z), by = 0.1)
-J_opt_CV_spline = optimization_CV_M(Z, W, Y, vect_J_to_test, 0.8, none, 1, 3, x, 2, g_sim_3)
+#vect_J_to_test <- c()
+#for (l in 1:3){
+#  vect_J_to_test[l] = (2^{l}-1)+3
+#}
+#optimization_CV_M(Z,W,Y,vect_J_to_test,0.5,3, seq(-2, 2, by = 0.1)) #fonctionne
 
 
 #### Selection of J by cross-validation on the MSE ####
-optimization_CV_MSE <- function(Z, W, Y, vect_J_to_test, p_train, p_j, bool_splines, degree, x_plot, case, true_g){
+optimization_CV_MSE <- function(Z, W, Y, vect_J_to_test, p_train, degree, x_grid){
   gamma_hat_list <- vector("list", length(vect_J_to_test))
   a = min(Z)
   b = max(Z)
@@ -418,85 +284,49 @@ optimization_CV_MSE <- function(Z, W, Y, vect_J_to_test, p_train, p_j, bool_spli
   n_train <- length(Z_train)
   
   # compute gamma_hat_train and g_hat_train for the training set
-  for (j in 1:length(vect_J_to_test)){
+  for (j_index in 1:length(vect_J_to_test)){
+    J = vect_J_to_test[j_index]
     #compute gamma_hat_train
-    gamma_hat <- estimation_gamma(vect_J_to_test[j],W_train,Z_train,Y_train,p_j, bool_splines, degree)
-    gamma_hat_list[[j]] <- gamma_hat
+    gamma_hat <- estimation_gamma(J,W_train,Z_train,Y_train, degree)
+    gamma_hat_list[[j_index]] <- gamma_hat
     
     # compute the prediction of g_hat_train on the test set 
     n_val <- length(Z_validation)
-    if (bool_splines == 0){ 
-      g_hat_on_Z_val = rep(0, n_val)
-      for (i in 1:n_val){
-        g_hat_on_Z_val[i] <- g_hat(Z_validation[i], vect_J_to_test[j], p_j, gamma_hat, a, b)
-      }}
-    else{
-      basis <- create_P_splines(Z_validation, Z_train, vect_J_to_test[j], degree)
-      g_hat_on_Z_val <-  basis%*%gamma_hat
-    }
+    basis <- create_dyadic_P_splines(Z_validation, Z_train, J, degree)
+    g_hat_on_Z_val <-  basis%*%gamma_hat
     
     # compute MSE and store it
     MSE = sum((g_hat_on_Z_val - Z_validation)**2)
-    MSE_values[j] = MSE
-     }
+    MSE_values[j_index] = MSE
+  }
   
   # return J corresponding to the smallest MSE
   J_opt = vect_J_to_test[which.min(MSE_values)]
-  print(c(MSE_values, J_opt))
-  gamma_hat <- estimation_gamma(J_opt,W,Z,Y,p_j, bool_splines, degree)
+  #print(c(MSE_values, J_opt))
+  gamma_hat <- estimation_gamma(J_opt,W,Z,Y,degree)
   
-  g_hat_on_x_opt = rep(0, length(x_plot))
-  if (bool_splines == 0){ 
-    for (i in 1:length(x_plot)){
-      g_hat_on_x_opt[i] <- g_hat(x_plot[i], J_opt, p_j, gamma_hat, a, b)
-    }}
-  else{
-    basis <- create_P_splines(x_plot, Z, J_opt, degree)
-    g_hat_on_x_opt <- basis%*%gamma_hat
-  }
+  g_hat_on_x_opt = rep(0, length(x_grid))
+  basis <- create_dyadic_P_splines(x_grid, Z, J_opt, degree)
+  g_hat_on_x_opt <- basis%*%gamma_hat
   
-  g_on_x = true_g(x_plot, case)
-  plot(x_plot, g_hat_on_x_opt, type = 'l', col = 'black')
-  lines(x_plot, g_on_x, type = 'l', col = 'green')
+  #g_on_x = true_g(x_plot, case)
+  #plot(x_plot, g_hat_on_x_opt, type = 'l', col = 'black')
+  #lines(x_plot, g_on_x, type = 'l', col = 'green')
   
-  return(J_opt)
+  return(list(J_opt = J_opt, gamma_hat_j_opt = gamma_hat, g_hat_on_x_opt = g_hat_on_x_opt, gamma_hat_list = gamma_hat_list, MSE_values = MSE_values))
   
 }
 
-#simulation 1 
-#data_param_1 = c(1250, 0.75)
-#simul_1 <- simulate_data_1(data_param_1, g_sim_1, none)
-#vect_J_to_test = seq(3, 10, by = 1)
-#x = seq(min(Z), max(Z), by = 0.1)
-#optimization_CV_MSE(simul_1$Z, simul_1$W, simul_1$Y, vect_J_to_test, 0.6, p_j_trigo_0_1, 0, none, x, none, g_sim_1)
-
-#vect_J_to_test = seq(3, 10, by = 1)
-#x = seq(min(Z), max(Z), by = 0.1)
-#optimization_CV_MSE(simul_1$Z, simul_1$W, simul_1$Y, vect_J_to_test, 0.6, none, 1, 3, x, none, g_sim_1)
+#optimization_CV_MSE(Z,W,Y,vect_J_to_test,0.5,3, seq(-2, 2, by = 0.1)) #fonctionne
 
 
-#simulation 3 
-#data_param_3 = c(200, 0.5, 0.9)
-#simul_3 = simulate_data_3(data_param_3, g_sim_3, 2) 
+#### Lepski (paper bootstrap) ####
 
-#vect_J_to_test = seq(3, 20, by = 1)
-#x = seq(min(Z), max(Z), by = 0.1)
-#optimization_CV_MSE(simul_3$Z, simul_3$W, simul_3$Y, vect_J_to_test, 0.8, p_j_trigo_0_1, 0, none, x, 2, g_sim_3)
-
-
-#vect_J_to_test = seq(3, 20, by = 1)
-#x = seq(min(Z), max(Z), by = 0.1)
-J_opt_CV_MSE_splines = optimization_CV_MSE(Z, W, Y, vect_J_to_test, 0.8, none, 1, 3, x, 2, g_sim_3)
-
-
-
-
-#### Lepski with bootstrap ####
-calcul_s_J <- function(J, W, Z, Y, p_j, bool_splines, degree){
+calcul_s_J <- function(J, W, Z, Y, degree){
   n = length(W)
   
   Omega <- create_W(W)
-  Phi <- create_P(Z, J, Z, p_j, degree, bool_splines)
+  Phi <- create_dyadic_P_splines(Z, Z, J, degree)
   tPhi_Phi <- t(Phi)%*%Phi
   
   inverse_tPhi_Phi <- solve(tPhi_Phi)
@@ -507,14 +337,13 @@ calcul_s_J <- function(J, W, Z, Y, p_j, bool_splines, degree){
   
   return(min_eigen_val)}
 
-
-compute_M_bootstrap <- function(J, W, Z, Y, p_j, bool_splines, degree){
+compute_M_bootstrap <- function(J, W, Z, Y, degree){
   n = length(Z)
   #compute Omega
   Omega <- create_W(W)
   
   #compute P
-  P <- create_P(Z, J, Z, p_j, degree, bool_splines)
+  P <- create_dyadic_P_splines(Z, Z, J, degree)
   
   #compute gamma
   M_boot_step = t(P)%*%Omega
@@ -524,25 +353,16 @@ compute_M_bootstrap <- function(J, W, Z, Y, p_j, bool_splines, degree){
   return(M_boot)
 }
 
-
-calcul_hat_g_on_Z <- function(j, Z, p_j, gamma_hat, a, b, Z_to_evaluate, degree, bool_splines){
+calcul_hat_g_on_Z <- function(j, Z, gamma_hat, a, b, Z_to_evaluate, degree){
   g_hat_on_x <- rep(0, length(Z_to_evaluate))
-  if (bool_splines == 0){
-    for (i in 1:length(Z_to_evaluate)){
-      g_hat_on_Z <- g_hat(Z_to_evaluate[i], j, p_j, gamma_hat, a, b)
-    }
-  }
-  else{
-    basis <- create_P_splines(Z_to_evaluate, Z, j, degree)
-    if (length(gamma_hat)>1){
+  basis <- create_dyadic_P_splines(Z_to_evaluate, Z, j, degree)
+  if (length(gamma_hat)>1){
     g_hat_on_Z <- basis%*%gamma_hat}
-    else {
-      g_hat_on_Z <- gamma_hat*sum(basis)
-    }
+  else {
+    g_hat_on_Z <- gamma_hat*sum(basis)
   }
   return(g_hat_on_Z)
 }
-
 
 create_matrix_U <- function(u_j, u_j_prime){
   n = length(u_j)
@@ -552,9 +372,9 @@ create_matrix_U <- function(u_j, u_j_prime){
   }
   return(res_mat)
 }
-  
-  
-T_stat_D <- function(x_grid, Y, Z, W, p_j, degree, bool_splines, I_hat, w_vector, list_M_boot, matrix_sigma_all_j_all_x, matrix_all_u, matrix_sigma_all_j_j2_all_x){
+
+
+T_stat_D <- function(x_grid, Y, Z, W, degree, I_hat, w_vector, list_M_boot, matrix_sigma_all_j_all_x, matrix_all_u, matrix_sigma_all_j_j2_all_x){
   I_hat = sort(I_hat)
   length_I_hat = length(I_hat)
   
@@ -566,8 +386,8 @@ T_stat_D <- function(x_grid, Y, Z, W, p_j, degree, bool_splines, I_hat, w_vector
     u_hat_j = matrix_all_u[j_index,] #chaque ligne correspond au vecteur des erreurs de prédiction pour J = valeur de la ligne
     u_star_j = u_hat_j*w_vector #on calcule le vecteur bootstrap
     
-    P_j_on_x <- create_P(x_grid, j, Z, p_j, degree, bool_splines)
-    D_j_star = P_j_on_x%*%list_M_boot[[j]]%*%u_star_j #vecteur de taille nx
+    P_j_on_x <- create_dyadic_P_splines(x_grid, Z, j, degree)
+    D_j_star = P_j_on_x%*%list_M_boot[[j_index]]%*%u_star_j #vecteur de taille nx 
     
     for (j_prime_index in j_index:length(I_hat)){
       j_prime = I_hat[j_prime_index]
@@ -577,8 +397,8 @@ T_stat_D <- function(x_grid, Y, Z, W, p_j, degree, bool_splines, I_hat, w_vector
       u_star_j_prime = u_hat_j_prime*w_vector
       
       #compute D_j_prime sur les x
-      P_j_prime_on_x <- create_P(x_grid, j_prime, Z, p_j, degree, bool_splines)
-      D_j_prime_star = P_j_prime_on_x%*%list_M_boot[[j_prime]]%*%u_star_j_prime #vecteur de taille x
+      P_j_prime_on_x <- create_dyadic_P_splines(x_grid, Z, j_prime, degree)
+      D_j_prime_star = P_j_prime_on_x%*%list_M_boot[[j_prime_index]]%*%u_star_j_prime #vecteur de taille x
     }
     
     #Stockage des résultats
@@ -601,39 +421,39 @@ T_stat_D <- function(x_grid, Y, Z, W, p_j, degree, bool_splines, I_hat, w_vector
     return(max(vec_max))}}
 
 
-compute_J_hat <- function(theta_star, I_hat, x_grid, p_j, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x){
+compute_J_hat <- function(theta_star, I_hat, x_grid, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x){
   j_index = 1
   J = I_hat[j_index]
-  ratio = calcul_ratio(J, j_index, I_hat, x_grid, p_j, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
+  ratio = calcul_ratio(J, j_index, I_hat, x_grid, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
   while (ratio > 1.1*theta_star){
     j_index = j_index + 1 
     J = I_hat[j_index]
-    ratio = calcul_ratio(J, j_index, I_hat, x_grid, p_j, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
+    ratio = calcul_ratio(J, j_index, I_hat, x_grid, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
   }
   
   return(J)
 }
 
-calcul_ratio <- function(J, J_index, I_hat, x_grid, p_j, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x){
+
+calcul_ratio <- function(J, J_index, I_hat, x_grid, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x){
   length_I_hat = length(I_hat)
   res_mat <- matrix(0, length_I_hat, length(x_grid))
   
-  P_j_on_x <- create_P(x_grid, J, Z, p_j, degree, bool_splines) #on crée la base pour J donné
+  P_j_on_x <- create_dyadic_P_splines(x_grid, Z, J, degree) #on crée la base pour J donné
   if (J>1){
     g_hat_J_x <- P_j_on_x%*%matrix_gamma[J_index,][1:J]
   }else{
     g_hat_J_x <- matrix_gamma[J_index,][1:J]*P_j_on_x}
   
-  
   sigma_J_vect <- matrix_sigma_all_j_all_x[J_index,]
   
   for (J_prime_index in J_index:length(I_hat)){
     J_prime = I_hat[J_prime_index]
-    P_j_prime_on_x <- create_P(x_grid, J_prime, Z, p_j, degree, bool_splines)
+    P_j_prime_on_x <- create_dyadic_P_splines(x_grid, Z, J_prime, degree)
     if (J>1){
       g_hat_J_prime_x <- P_j_prime_on_x%*%matrix_gamma[J_prime_index,][1:J_prime]
     }else{
-      g_hat_J_prime_x <- matrix_gamma[J_index,][1:J_prime]*P_j_prime_on_x}
+      g_hat_J_prime_x <- matrix_gamma[J_prime_index,][1:J_prime]*P_j_prime_on_x}
     
     sigma_J_prime_vect <- matrix_sigma_all_j_all_x[J_prime_index,]
     for (x_index in 1:length(x_grid)){
@@ -646,65 +466,38 @@ calcul_ratio <- function(J, J_index, I_hat, x_grid, p_j, matrix_gamma, matrix_si
   return(max(res_mat))
 }
 
-valid_dim <- function(J){
-  if (J>0){
-    return(TRUE)
-  }
-  else{
+valid_dim <- function(J, degree){
+  if (J-degree+1 <= 1){
     return(FALSE)
   }
-}
+  else{
+    l = log(J - degree +1)/log(2)
+    if (as.integer(l)!=l){
+      return(FALSE)
+    }else{return(TRUE)}}}
 
-lepski_bootstrap <- function(n_boot,valid_dim,x_grid, W, Z, Y, p_j, bool_splines, degree){
-  n = length(W)
-  
-  #code fonctionne mais pb ça ne s'arrête pas... définir un J_max à la main en attendant, leur critère n'est peut-être pas le bon pour nous
-  #s_1 = 1/calcul_s_J(1, W, Z, Y, p_j, bool_splines, degree)
-  #s_2 = 1/calcul_s_J(2, W, Z, Y, p_j, bool_splines, degree)
-  #prev_ratio = s_1*1*sqrt(log(1))/sqrt(n) 
-  #new_ratio = s_2*2*sqrt(log(2))/sqrt(n)
-  
-  #if ((prev_ratio <= 10 && new_ratio > 10)) {
-  #  J = 2
-  #} else {
-  #  J = 2
-  #  while (!(prev_ratio <= 10 && new_ratio > 10)) {
-  #    print(c(prev_ratio, new_ratio))
-  #    J = J + 1
-      
-      # Look for a valid J
-  #    while (!valid_dim(J)) {  
-  #      J = J + 1}
-      
-      # Calculate s_hat_J and update ratios
-  #    s_hat_J = calcul_s_J(J, W, Z, Y, p_j, bool_splines, degree)
-  #    prev_ratio = new_ratio
-  #    new_ratio = s_hat_J * J * sqrt(log(J)) / sqrt(n)
-  #  }
-  #}
-  
-  #J_max = J
-  J_max = 20 #arbitraire pour l'instant
-  
-  #create I_hat
+
+lepski_bootstrap <- function(n_boot,valid_dim,x_grid, W, Z, Y, degree){#attention : ici x_grid juste pour calculer les sup norm
+  n = length(Z)
+  #J_max = compute_J_max(W, Z, Y, degree)
+  J_max = 18
   I_hat = seq(as.integer(0.1 * (log(J_max)^2))+1, as.integer(J_max), by = 1) #on commence au moins à 2 parce que 1 c'est pas une bonne solution
-  I_hat = sort(I_hat[sapply(I_hat,valid_dim)]) #select only the valid dimensions
+  I_hat = sort(I_hat[sapply(I_hat,valid_dim, degree)]) #select only the valid dimensions
   length_I_hat = length(I_hat)
   
-  
   # estimate the models (ie the gamma_J and M_boot for all J)
-  matrix_gamma = matrix(0, nrow = length_I_hat, ncol = length_I_hat)
+  matrix_gamma = matrix(0, nrow = length_I_hat, ncol = max(I_hat))
   list_M_boot <- list()
   for (j_index in 1:length_I_hat){
     j = I_hat[j_index]
-    M_boot_j <- compute_M_bootstrap(j, W, Z, Y, p_j, bool_splines, degree)
+    M_boot_j <- compute_M_bootstrap(j, W, Z, Y, degree)
     list_M_boot[[j_index]] <- M_boot_j
     
     gamma_J <- M_boot_j%*%Y
-    gamma_J_zeros <- c(gamma_J, rep(0, length_I_hat - j)) #add zeros for good dimension
+    gamma_J_zeros <- c(gamma_J, rep(0, max(I_hat) - j)) #add zeros for good dimension
     matrix_gamma[j_index,] = gamma_J_zeros #ATTENTION ! prendre que les J premiers termes dans les prochains algos pour pas prendre les zéros!!!
-  }
-  
+    
+    }
   
   #draw the w_i
   W_boot_matrix <- matrix(rnorm(n_boot * n, mean = 0, sd = 1), nrow = n_boot, ncol = n)
@@ -714,11 +507,11 @@ lepski_bootstrap <- function(n_boot,valid_dim,x_grid, W, Z, Y, p_j, bool_splines
   matrix_all_u <- matrix(0, nrow = length_I_hat, ncol = n) #n number of data points (ie length(Z))
   for (j_index in 1:length_I_hat){
     j = I_hat[j_index]
-    h_hat_j_on_Z = calcul_hat_g_on_Z(j, Z, p_j, matrix_gamma[j_index,1:j], a, b, Z, degree, bool_splines)
+    h_hat_j_on_Z = calcul_hat_g_on_Z(j, Z, matrix_gamma[j_index,1:j], a, b, Z, degree)
     u_hat_j = Y - h_hat_j_on_Z 
     matrix_all_u[j_index,] = u_hat_j
     
-    P_j_on_x <- create_P(x_grid, j, Z, p_j, degree, bool_splines) #create for all x_grid
+    P_j_on_x <- create_dyadic_P_splines(x_grid, Z, j, degree) #create for all x_grid
     U_j_j <- create_matrix_U(u_hat_j, u_hat_j) 
     middle_matrix <- list_M_boot[[j_index]]%*%U_j_j%*%t(list_M_boot[[j_index]]) #ok
     
@@ -735,19 +528,19 @@ lepski_bootstrap <- function(n_boot,valid_dim,x_grid, W, Z, Y, p_j, bool_splines
     }
     matrix_sigma_all_j_all_x[j_index,] = vec_sigma_j #ligne j prend les valeurs des sigma_j(x) pour toutes les valeurs de x_grid
   }
-
+  
   #compute the sigma_J,J_2(x) for all values of x
   matrix_sigma_all_j_j2_all_x <- replicate(length(x_grid), matrix(0, length_I_hat, length_I_hat), simplify = FALSE)
   for (j_index in 1:length_I_hat){
     j = I_hat[j_index]
-    P_j_on_x <- create_P(x_grid, j, Z, p_j, degree, bool_splines)
+    P_j_on_x <- create_dyadic_P_splines(x_grid, Z, j, degree)
     
     for (j_prime_index in (j_index):length_I_hat){
       j_prime = I_hat[j_prime_index]
       
       #calcul de sigma_j,jprime(x) pour tous les x_grid et ensuite on met dans les matrices
       U_j_jp <- create_matrix_U(matrix_all_u[j_index,], matrix_all_u[j_prime_index,])
-      P_j_prime_on_x <- create_P(x_grid, j_prime, Z, p_j, degree, bool_splines)
+      P_j_prime_on_x <- create_dyadic_P_splines(x_grid, Z,j_prime,degree)
       
       middle_matrix <- list_M_boot[[j_index]]%*%U_j_jp%*%t(list_M_boot[[j_prime_index]])
       
@@ -785,82 +578,78 @@ lepski_bootstrap <- function(n_boot,valid_dim,x_grid, W, Z, Y, p_j, bool_splines
   #compute the T stat for each draw of w
   T_i = rep(0, n_boot)
   for (i in 1:n_boot){
-    T_i[i] = T_stat_D(x_grid, Y, Z, W, p_j, degree, bool_splines, I_hat, W_boot_matrix[i,], list_M_boot, matrix_sigma_all_j_all_x, matrix_all_u, matrix_sigma_all_j_j2_all_x) 
+    T_i[i] = T_stat_D(x_grid, Y, Z, W, degree, I_hat, W_boot_matrix[i,], list_M_boot, matrix_sigma_all_j_all_x, matrix_all_u, matrix_sigma_all_j_j2_all_x) 
   }
   alpha = min(0.5, sqrt(log(J_max)/J_max))
   theta = quantile(T_i, probs = 1 - alpha)
   
   J_n_hat = I_hat[length(I_hat)-1] #on prend l'avant dernier pour être le plus petit strict
-
-  J_hat = compute_J_hat(theta,I_hat, x_grid, p_j, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
+  
+  J_hat = compute_J_hat(theta,I_hat, x_grid, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
   
   J_tilde = min(J_hat, J_n_hat)
   
   return(J_tilde)
 }
 
-#tests
-n_boot = 100
-bool_splines = 1
-degree = 3
-J_opt_lepski_splines = lepski_bootstrap(n_boot,valid_dim,x, W, Z, Y, none, bool_splines, degree) #ok fonctionne avec splines
+#x = seq(min(Z), max(Z), by = 0.1)
+#lepski_bootstrap(100,valid_dim,x, W, Z, Y,degree) #ok fonctionne avec splines
 
 
+#### Lepski simpler version ####
+compute_J_max <- function(W, Z, Y, degree){#TO DO
+  J_init = degree
+  J_next = degree + 1
+  n = length(Z)
+  s_1 = 1/calcul_s_J(J_init, W, Z, Y, degree)
+  s_2 = 1/calcul_s_J(J_next, W, Z, Y, degree)
+  prev_ratio = s_1/sqrt(n) 
+  new_ratio = s_2/sqrt(n)
+  
+  J = J_next
+  if ((prev_ratio <= 10 && new_ratio > 10)) {
+  } else {
+    while (!(prev_ratio <= 10 && new_ratio > 10)) {
+      print(c(prev_ratio, new_ratio))
+      J = J + 1
+      
+      # Look for a valid J
+      while (!valid_dim(J, degree)) {  
+        J = J + 1}
+      
+      print(J)
+      
+      # Calculate s_hat_J and update ratios
+      s_hat_J = calcul_s_J(J, W, Z, Y, degree)
+      prev_ratio = new_ratio
+      new_ratio = s_hat_J / sqrt(n)
+    }
+  }
+  return(J)}
 
 
-
-
-
-#### Selection of J by Lepski 2 (Chen) #### 
-lepski_chen <- function(c_0,W,Z,Y,p_j,bool_splines,degree, valid_dim){
-  n = length(W)
-  
-  #s_1 = 1/calcul_s_J(1, W, Z, Y, p_j, bool_splines, degree)
-  #s_2 = 1/calcul_s_J(2, W, Z, Y, p_j, bool_splines, degree)
-  #prev_ratio = s_1*1*sqrt(log(1))/sqrt(n) 
-  #new_ratio = s_2*2*sqrt(log(2))/sqrt(n)
-  
-  #if ((prev_ratio <= 10 && new_ratio > 10)) {
-  #  J = 2
-  #} else {
-  #  J = 2
-  #  while (!(prev_ratio <= 10 && new_ratio > 10)) {
-  #    print(c(prev_ratio, new_ratio))
-  #    J = J + 1
-  
-  # Look for a valid J
-  #    while (!valid_dim(J)) {  
-  #      J = J + 1}
-  
-  # Calculate s_hat_J and update ratios
-  #    s_hat_J = calcul_s_J(J, W, Z, Y, p_j, bool_splines, degree)
-  #    prev_ratio = new_ratio
-  #    new_ratio = s_hat_J * J * sqrt(log(J)) / sqrt(n)
-  #  }
-  #}
-  
-  #J_max = J
-  
-  J_max = 14 
-  
+lepski_chen <- function(c_0,W,Z,Y,degree, valid_dim){
+  n = length(Z)
+  #J_max = compute_J_max(W, Z, Y, degree)
+  J_max = 50
   I_hat = seq(as.integer(0.1 * (log(J_max)^2))+1, as.integer(J_max), by = 1) #on commence au moins à 2 parce que 1 c'est pas une bonne solution
-  I_hat = sort(I_hat[sapply(I_hat,valid_dim)]) #select only the valid dimensions
+  I_hat = sort(I_hat[sapply(I_hat,valid_dim, degree)]) #select only the valid dimensions
   length_I_hat = length(I_hat)
   
   J_index = 1
   J = I_hat[J_index]
   condition = FALSE
   while ((J_index<length(I_hat) && condition == FALSE)){
-    gamma_J <- estimation_gamma(J,W,Z,Y,p_j, bool_splines, degree)
-    s_J <- calcul_s_J(J, W, Z, Y, p_j, bool_splines, degree)
+    gamma_J <- estimation_gamma(J,W,Z,Y, degree)
+    s_J <- calcul_s_J(J, W, Z, Y, degree)
     V_J = V_hat_J(J, n, s_J)
     J_prime_index = J_index + 1 
     J_prime = I_hat[J_prime_index]
     while ((J_prime_index < length(I_hat) && condition == FALSE)){
-      gamma_J_prime <- estimation_gamma(J_prime, W, Z, Y,p_j, bool_splines, degree)
-      s_J_prime <- calcul_s_J(J_prime, W, Z, Y, p_j, bool_splines, degree)
+      gamma_J_prime <- estimation_gamma(J_prime, W, Z, Y, degree)
+      s_J_prime <- calcul_s_J(J_prime, W, Z, Y, degree)
       V_J_prime = V_hat_J(J, n, s_J_prime)
-      a = difference_norm(gamma_J, gamma_J_prime, J, J_prime, Z, p_j, bool_splines, degree, x_grid)
+      a = difference_norm(gamma_J, gamma_J_prime, J, J_prime, Z, degree, x_grid)
       b = c_0*(V_J + V_J_prime)
       if(a<b){
         condition = TRUE}
@@ -875,29 +664,16 @@ lepski_chen <- function(c_0,W,Z,Y,p_j,bool_splines,degree, valid_dim){
   return(J_opt)
 }
 
-#algo tourne : manque à définir correctement la différence de normes et le J_max 
-  
-
 V_hat_J <- function(J, n, s_J_hat){
   return (sqrt(log(n)/n)/s_J_hat) #the one in our case 
 }
 
 difference_norm <- function(gamma_J, gamma_J_prime, J, J_prime, Z, p_j, bool_splines, degree, x_grid){
+  # TO DO
   return(1000*(J+J_prime))
 }
 
-W <- simul_3$W
-Y <- simul_3$Y
-Z <- simul_3$Z
+lepski_chen(1, W,Z,Y,3, valid_dim )
 
-J_opt_lepski <- lepski_chen(1, W,Z,Y,none,1,3, valid_dim )
-
-
-
-#### Monte Carlo study ####
-
-
-
-
-
-
+#### Monte Carlo d'abord sans sélection du paramètre J ####
+#on choisit des valeurs de J d'abord et on regarde pour un nombre de samples ce qu'on obtient comme MSE par ex sur un grid
