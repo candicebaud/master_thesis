@@ -421,21 +421,21 @@ T_stat_D <- function(x_grid, Y, Z, W, degree, I_hat, w_vector, list_M_boot, matr
     return(max(vec_max))}}
 
 
-compute_J_hat <- function(theta_star, I_hat, x_grid, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x){
+compute_J_hat <- function(theta_star, I_hat, x_grid, degree, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x){
   j_index = 1
   J = I_hat[j_index]
-  ratio = calcul_ratio(J, j_index, I_hat, x_grid, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
+  ratio = calcul_ratio(J, j_index, I_hat, x_grid, degree, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
   while (ratio > 1.1*theta_star){
     j_index = j_index + 1 
     J = I_hat[j_index]
-    ratio = calcul_ratio(J, j_index, I_hat, x_grid, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
+    ratio = calcul_ratio(J, j_index, I_hat, x_grid,degree, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
   }
   
   return(J)
 }
 
 
-calcul_ratio <- function(J, J_index, I_hat, x_grid, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x){
+calcul_ratio <- function(J, J_index, I_hat, x_grid, degree, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x){
   length_I_hat = length(I_hat)
   res_mat <- matrix(0, length_I_hat, length(x_grid))
   
@@ -585,19 +585,19 @@ lepski_bootstrap <- function(n_boot,valid_dim,x_grid, W, Z, Y, degree){#attentio
   
   J_n_hat = I_hat[length(I_hat)-1] #on prend l'avant dernier pour être le plus petit strict
   
-  J_hat = compute_J_hat(theta,I_hat, x_grid, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
+  J_hat = compute_J_hat(theta,I_hat, x_grid, degree, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
   
   J_tilde = min(J_hat, J_n_hat)
   
   return(J_tilde)
 }
 
-#x = seq(min(Z), max(Z), by = 0.1)
-#lepski_bootstrap(100,valid_dim,x, W, Z, Y,degree) #ok fonctionne avec splines
+x = seq(min(Z), max(Z), by = 0.1)
+lepski_bootstrap(100,valid_dim,x, W, Z, Y,3) #ok fonctionne avec splines
 
 
 #### Lepski simpler version ####
-compute_J_max <- function(W, Z, Y, degree){#TO DO
+compute_J_max <- function(W, Z, Y, degree){
   J_init = degree
   J_next = degree + 1
   n = length(Z)
@@ -630,6 +630,8 @@ compute_J_max <- function(W, Z, Y, degree){#TO DO
 
 lepski_chen <- function(c_0,W,Z,Y,degree, valid_dim){
   n = length(Z)
+  x_grid = seq(min(Z), max(Z), length.out = 10*n)
+  
   #J_max = compute_J_max(W, Z, Y, degree)
   J_max = 50
   I_hat = seq(as.integer(0.1 * (log(J_max)^2))+1, as.integer(J_max), by = 1) #on commence au moins à 2 parce que 1 c'est pas une bonne solution
@@ -668,12 +670,162 @@ V_hat_J <- function(J, n, s_J_hat){
   return (sqrt(log(n)/n)/s_J_hat) #the one in our case 
 }
 
-difference_norm <- function(gamma_J, gamma_J_prime, J, J_prime, Z, p_j, bool_splines, degree, x_grid){
-  # TO DO
-  return(1000*(J+J_prime))
+difference_norm <- function(gamma_J, gamma_J_prime, J, J_prime, Z, degree, x_grid){
+  P_x_grid_J <- create_dyadic_P_splines(x_grid, Z, J,degree)
+  P_x_grid_J_prime <- create_dyadic_P_splines(x_grid, Z, J_prime,degree)
+  g_hat_J_x_grid <- P_x_grid_J%*%gamma_J
+  g_hat_J_prime_x_grid <- P_x_grid_J_prime%*%gamma_J_prime
+  m_m = max(Z) - min(Z)
+  n = length(Z)
+  
+  return(m_m*sum((g_hat_J_prime_x_grid - g_hat_J_x_grid)^{2})/n)
 }
 
 lepski_chen(1, W,Z,Y,3, valid_dim )
 
 #### Monte Carlo d'abord sans sélection du paramètre J ####
 #on choisit des valeurs de J d'abord et on regarde pour un nombre de samples ce qu'on obtient comme MSE par ex sur un grid
+
+
+MC_fixed_J <- function(J, n_MC, degree, x_evaluation, g_0, case, data_param){
+  list_gamma <- list() #liste des gamma obtenus
+  list_g_hat_on_x <- list() #liste de l'estimation de g sur la grille
+  list_W <- list()
+  list_Y <- list()
+  list_Z <- list()
+  
+  for (n in 1:n_MC){
+    #generate data 
+    simul <- simulate_data_3(data_param, g_0, case)
+    W <- simul$W
+    Y <- simul$Y
+    Z <- simul$Z
+    
+    list_W[[n]] <- W
+    list_Y[[n]] <- Y
+    list_Z[[n]] <- Z
+    
+    #compute g_hat_J
+    gamma_hat_J <- estimation_gamma(J, W, Z, Y, degree)
+    list_gamma[[n]] <- gamma_hat_J
+    
+    #compute the function on the grid
+    basis <- create_dyadic_P_splines(x_evaluation, Z, J, degree)
+    g_hat_on_x <- basis%*%gamma_hat_J
+    list_g_hat_on_x[[n]] <- g_hat_on_x
+  }
+  
+  g_0_on_x <- g_0(x_evaluation, case)
+  
+  return(list(list_gamma = list_gamma, list_g_hat_on_x = list_g_hat_on_x,
+              list_W = list_W, list_Y = list_Y, list_Z = list_Z, g_0_on_x = g_0_on_x))
+  }
+
+test <- MC_fixed_J(10, 100, 3, seq(-2, 2, by = 0.1), g_sim_3, 2, c(1000, 0.5, 0.9))
+
+compute_perf <- function(res_MC, measure){
+  n_MC = length(res_MC$list_gamma)
+  MSE = 0 
+  var = 0 
+  bias = 0
+  sup_norm = 0
+  M = 0
+  n_val <- length(res_MC$list_g_hat_on_x[[1]])
+  if (measure == 'MSE'){
+    for (i in 1:n_MC){
+      MSE = MSE + sum((res_MC$list_g_hat_on_x[[i]] - res_MC$g_0_on_x)^{2})
+    }
+    MSE = MSE/(n_MC*n_val)
+    return(MSE)
+  }
+  if (measure == 'Var'){
+    avg <- rep(0, n_val)
+    for (x in 1:n_val){
+      for (n in 1:n_MC){
+        avg[x] <- avg[x] + res_MC$list_g_hat_on_x[[n]][x]/n_MC
+      }}
+    for (n in 1:n_MC){
+      var = var + sum((res_MC$list_g_hat_on_x[[n]] - avg)^{2})
+    }
+    var = var/(n_MC*n_val)
+    return(var)
+  }
+  if (measure == 'bias'){
+    n_val <- length(res_MC$list_g_hat_on_x[[1]])
+    avg <- rep(0, n_val)
+    for (x in 1:n_val){
+      for (n in 1:n_MC){
+        avg[x] <- avg[x] + res_MC$list_g_hat_on_x[[n]][x]
+      }}
+    
+    for (n in 1:n_MC){
+      bias = bias + sum((res_MC$g_0_on_x - avg/n_MC)^{2})
+    }
+    bias = bias/(n_MC*n_val)
+    return(bias)
+  }
+  if (measure == 'supnorm'){
+    sup_norm_vect <- rep(0, n_MC)
+    for (n in 1:n_MC){
+      sup_norm_vect[n] = max(abs(res_MC$list_g_hat_on_x[[n]] - res_MC$g_0_on_x))
+    }
+    sup_norm = max(sup_norm_vect)
+    return(sup_norm)
+  }
+  if (measure == 'M'){
+    M_vect <- rep(0, n_MC)
+    for (n in 1:n_MC){
+      Omega <- create_W(res_MC$list_W[[n]])
+      M_vect[n] = calcul_M_g_hat_test_sample(res_MC$list_g_hat_on_x[[n]], Omega, n_val, res_MC$list_Y[[n]])
+    }
+    return (mean(M_vect))
+  }
+}
+
+
+compute_perf(test, 'M') #calcul du critère M moyen
+
+compute_perf(test, 'supnorm') #supnorm
+
+compute_perf(test, 'Var')
+compute_perf(test, 'MSE')
+compute_perf(test, 'bias')
+
+# ok on a bien MSE = var + bias -> à faire : créer grille avec résultats
+
+library(ggplot2)
+plot_mean_true <- function(res_MC, x_evaluation,J){
+  n_MC = length(res_MC$list_gamma)
+  n_val = length(res_MC$list_g_hat_on_x[[1]])
+  
+  #compute the avg
+  avg <- rep(0, n_val)
+  for (x in 1:n_val){
+    for (n in 1:n_MC){
+      avg[x] <- avg[x] + res_MC$list_g_hat_on_x[[n]][x]/n_MC
+    }}
+  
+  data <- data.frame(x_evaluation, avg, g_0_on_x = res_MC$g_0_on_x)
+  ggplot(data, aes(x = x_evaluation)) +
+    geom_line(aes(y = g_0_on_x, colour = 'True Function')) + # Changed the label
+    geom_line(aes(y = avg, colour = 'Estimate by MC')) + # Changed the label
+    ylab("Function value") +
+    xlab("Evaluation points") + 
+    scale_colour_manual(
+      name = "Functions", # Change this to your desired legend title
+      values = c("True Function" = "blue", "Estimate by MC" = "red") # Customize colors
+    ) +
+    ggtitle(paste("True Function vs Estimation (n_MC =", n_MC, ", J =", J, ")"))
+}
+
+plot_mean_true(test, seq(-2, 2, by = 0.1), 10)
+
+
+# à faire pour plusieurs paramètres, plusieurs tailles de data set... (modifier les titres etc s'il faut)
+
+
+
+
+
+
+
