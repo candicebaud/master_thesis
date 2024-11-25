@@ -137,11 +137,11 @@ g_sim_3 <- function(x,case)
 #rhoev = 0.5 #0.8, 0.8
 #rhowz = 0.9 #0.9, 0.7
 
-data_param_3 = c(1000, 0.5, 0.9)
-simul_3 = simulate_data_3(data_param_3, g_sim_3, 2) #utilisent que le cas 2 et 3 dans le papier lapenta
-W <- simul_3$W
-Y <- simul_3$Y
-Z <- simul_3$Z
+#data_param_3 = c(1000, 0.5, 0.9)
+#simul_3 = simulate_data_3(data_param_3, g_sim_3, 2) #utilisent que le cas 2 et 3 dans le papier lapenta
+#W <- simul_3$W
+#Y <- simul_3$Y
+#Z <- simul_3$Z
 
 #### Selection of J by cross-validation on M ####
 calcul_M_g_hat <- function(gamma_hat, J, Z, Y, W, degree){
@@ -224,7 +224,6 @@ optimization_CV_M <- function(Z, W, Y, vect_J_to_test, p_train, degree, x_grid){
   # compute gamma_hat_train and g_hat_train for the training set
   for (j_index in 1:length(vect_J_to_test)){
     J = vect_J_to_test[j_index]
-    print(J)
     #compute gamma_hat_train
     gamma_hat <- estimation_gamma(J,W_train,Z_train,Y_train,degree)
     gamma_hat_list[[j_index]] <- gamma_hat
@@ -328,14 +327,20 @@ calcul_s_J <- function(J, W, Z, Y, degree){
   Omega <- create_W(W)
   Phi <- create_dyadic_P_splines(Z, Z, J, degree)
   tPhi_Phi <- t(Phi)%*%Phi
-  
-  inverse_tPhi_Phi <- solve(tPhi_Phi)
-  sqrt_inverse_tPhi_Phi <- sqrtm(inverse_tPhi_Phi)
-  res_mat <- n*sqrt_inverse_tPhi_Phi%*%t(Phi)%*%Omega%*%Phi%*%sqrt_inverse_tPhi_Phi
-  
-  min_eigen_val <- min(eigen(res_mat)$values)
-  
-  return(min_eigen_val)}
+  #print(kappa(tPhi_Phi))
+
+  if (det(tPhi_Phi)>10^{-12}){
+    inverse_tPhi_Phi <- solve(tPhi_Phi)
+    sqrt_inverse_tPhi_Phi <- sqrtm(inverse_tPhi_Phi)
+    res_mat <- n*sqrt_inverse_tPhi_Phi%*%t(Phi)%*%Omega%*%Phi%*%sqrt_inverse_tPhi_Phi
+    
+    sing_values <- svd(res_mat)$d
+    #min_eigen_val <- min(eigen(res_mat)$values)
+    
+    return(min(sing_values))
+  }else{
+    return(999)
+  }}
 
 compute_M_bootstrap <- function(J, W, Z, Y, degree){
   n = length(Z)
@@ -421,21 +426,21 @@ T_stat_D <- function(x_grid, Y, Z, W, degree, I_hat, w_vector, list_M_boot, matr
     return(max(vec_max))}}
 
 
-compute_J_hat <- function(theta_star, I_hat, x_grid, degree, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x){
+compute_J_hat <- function(theta_star, I_hat, x_grid, degree, Z, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x){
   j_index = 1
   J = I_hat[j_index]
-  ratio = calcul_ratio(J, j_index, I_hat, x_grid, degree, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
-  while (ratio > 1.1*theta_star){
+  ratio = calcul_ratio(J, j_index, I_hat, x_grid, degree, Z, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
+  while (ratio > 10*theta_star){
     j_index = j_index + 1 
     J = I_hat[j_index]
-    ratio = calcul_ratio(J, j_index, I_hat, x_grid,degree, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
+    ratio = calcul_ratio(J, j_index, I_hat, x_grid,degree, Z, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
   }
   
   return(J)
 }
 
 
-calcul_ratio <- function(J, J_index, I_hat, x_grid, degree, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x){
+calcul_ratio <- function(J, J_index, I_hat, x_grid, degree, Z, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x){
   length_I_hat = length(I_hat)
   res_mat <- matrix(0, length_I_hat, length(x_grid))
   
@@ -444,7 +449,7 @@ calcul_ratio <- function(J, J_index, I_hat, x_grid, degree, matrix_gamma, matrix
     g_hat_J_x <- P_j_on_x%*%matrix_gamma[J_index,][1:J]
   }else{
     g_hat_J_x <- matrix_gamma[J_index,][1:J]*P_j_on_x}
-  
+
   sigma_J_vect <- matrix_sigma_all_j_all_x[J_index,]
   
   for (J_prime_index in J_index:length(I_hat)){
@@ -477,10 +482,22 @@ valid_dim <- function(J, degree){
     }else{return(TRUE)}}}
 
 
+#tests
+#for (n in 1:10){
+#  print(n)
+#  simul <- simulate_data_3(c(400, 0.5, 0.9), g_sim_3, 2)
+#  J_test <- compute_J_max(simul$W, simul$Z, simul$Y, 3)
+#  print(J_test)
+#  J_test <- 18
+#  gamma_test <- estimation_gamma(J_test, simul$W, simul$Z, simul$Y, 3)}
+
+
+
 lepski_bootstrap <- function(n_boot,valid_dim,x_grid, W, Z, Y, degree){#attention : ici x_grid juste pour calculer les sup norm
   n = length(Z)
-  #J_max = compute_J_max(W, Z, Y, degree)
-  J_max = 18
+  J_max = compute_J_max(W, Z, Y, degree)
+  print(J_max)
+  #J_max = 18
   I_hat = seq(as.integer(0.1 * (log(J_max)^2))+1, as.integer(J_max), by = 1) #on commence au moins à 2 parce que 1 c'est pas une bonne solution
   I_hat = sort(I_hat[sapply(I_hat,valid_dim, degree)]) #select only the valid dimensions
   length_I_hat = length(I_hat)
@@ -490,6 +507,7 @@ lepski_bootstrap <- function(n_boot,valid_dim,x_grid, W, Z, Y, degree){#attentio
   list_M_boot <- list()
   for (j_index in 1:length_I_hat){
     j = I_hat[j_index]
+    print(j)
     M_boot_j <- compute_M_bootstrap(j, W, Z, Y, degree)
     list_M_boot[[j_index]] <- M_boot_j
     
@@ -585,21 +603,21 @@ lepski_bootstrap <- function(n_boot,valid_dim,x_grid, W, Z, Y, degree){#attentio
   
   J_n_hat = I_hat[length(I_hat)-1] #on prend l'avant dernier pour être le plus petit strict
   
-  J_hat = compute_J_hat(theta,I_hat, x_grid, degree, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
+  J_hat = compute_J_hat(theta,I_hat, x_grid, degree, Z, matrix_gamma, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
   
   J_tilde = min(J_hat, J_n_hat)
   
   return(J_tilde)
 }
 
-x = seq(min(Z), max(Z), by = 0.1)
-lepski_bootstrap(100,valid_dim,x, W, Z, Y,3) #ok fonctionne avec splines
+#x = seq(min(Z), max(Z), by = 0.1)
+#lepski_bootstrap(100,valid_dim,x, W, Z, Y,3) #ok fonctionne avec splines
 
 
 #### Lepski simpler version ####
 compute_J_max <- function(W, Z, Y, degree){
-  J_init = degree
-  J_next = degree + 1
+  J_init = degree - 1 + 2
+  J_next = degree - 1 + 2^{2}
   n = length(Z)
   s_1 = 1/calcul_s_J(J_init, W, Z, Y, degree)
   s_2 = 1/calcul_s_J(J_next, W, Z, Y, degree)
@@ -607,33 +625,31 @@ compute_J_max <- function(W, Z, Y, degree){
   new_ratio = s_2/sqrt(n)
   
   J = J_next
-  if ((prev_ratio <= 10 && new_ratio > 10)) {
+  s_J_hat = s_2
+  if ((prev_ratio <= 10 && new_ratio > 10 && s_J_hat !=999)) {
   } else {
-    while (!(prev_ratio <= 10 && new_ratio > 10)) {
-      print(c(prev_ratio, new_ratio))
+    while (!(prev_ratio <= 10 && new_ratio > 10 && s_J_hat != 999)){
       J = J + 1
       
       # Look for a valid J
       while (!valid_dim(J, degree)) {  
         J = J + 1}
       
-      print(J)
-      
       # Calculate s_hat_J and update ratios
       s_hat_J = calcul_s_J(J, W, Z, Y, degree)
       prev_ratio = new_ratio
       new_ratio = s_hat_J / sqrt(n)
     }
-  }
-  return(J)}
+  return(J)}}
+
 
 
 lepski_chen <- function(c_0,W,Z,Y,degree, valid_dim){
   n = length(Z)
   x_grid = seq(min(Z), max(Z), length.out = 10*n)
   
-  #J_max = compute_J_max(W, Z, Y, degree)
-  J_max = 50
+  J_max = compute_J_max(W, Z, Y, degree)
+  #J_max = 50
   I_hat = seq(as.integer(0.1 * (log(J_max)^2))+1, as.integer(J_max), by = 1) #on commence au moins à 2 parce que 1 c'est pas une bonne solution
   I_hat = sort(I_hat[sapply(I_hat,valid_dim, degree)]) #select only the valid dimensions
   length_I_hat = length(I_hat)
@@ -681,7 +697,7 @@ difference_norm <- function(gamma_J, gamma_J_prime, J, J_prime, Z, degree, x_gri
   return(m_m*sum((g_hat_J_prime_x_grid - g_hat_J_x_grid)^{2})/n)
 }
 
-lepski_chen(1, W,Z,Y,3, valid_dim )
+#lepski_chen(1, simul$W,simul$Z,simul$Y,3, valid_dim )
 
 #### Monte Carlo d'abord sans sélection du paramètre J ####
 #on choisit des valeurs de J d'abord et on regarde pour un nombre de samples ce qu'on obtient comme MSE par ex sur un grid
@@ -721,7 +737,7 @@ MC_fixed_J <- function(J, n_MC, degree, x_evaluation, g_0, case, data_param){
               list_W = list_W, list_Y = list_Y, list_Z = list_Z, g_0_on_x = g_0_on_x))
   }
 
-test <- MC_fixed_J(10, 100, 3, seq(-2, 2, by = 0.1), g_sim_3, 2, c(1000, 0.5, 0.9))
+#test <- MC_fixed_J(10, 100, 3, seq(-2, 2, by = 0.1), g_sim_3, 2, c(1000, 0.5, 0.9))
 
 compute_perf <- function(res_MC, measure){
   n_MC = length(res_MC$list_gamma)
@@ -769,7 +785,7 @@ compute_perf <- function(res_MC, measure){
     for (n in 1:n_MC){
       sup_norm_vect[n] = max(abs(res_MC$list_g_hat_on_x[[n]] - res_MC$g_0_on_x))
     }
-    sup_norm = max(sup_norm_vect)
+    sup_norm = mean(sup_norm_vect)
     return(sup_norm)
   }
   if (measure == 'M'){
@@ -783,13 +799,13 @@ compute_perf <- function(res_MC, measure){
 }
 
 
-compute_perf(test, 'M') #calcul du critère M moyen
+#compute_perf(test, 'M') #calcul du critère M moyen
 
-compute_perf(test, 'supnorm') #supnorm
+#compute_perf(test, 'supnorm') #supnorm
 
-compute_perf(test, 'Var')
-compute_perf(test, 'MSE')
-compute_perf(test, 'bias')
+#compute_perf(test, 'Var')
+#compute_perf(test, 'MSE')
+#compute_perf(test, 'bias')
 
 # ok on a bien MSE = var + bias -> à faire : créer grille avec résultats
 
@@ -806,7 +822,7 @@ plot_mean_true <- function(res_MC, x_evaluation,J){
     }}
   
   data <- data.frame(x_evaluation, avg, g_0_on_x = res_MC$g_0_on_x)
-  ggplot(data, aes(x = x_evaluation)) +
+  graph <- ggplot(data, aes(x = x_evaluation)) +
     geom_line(aes(y = g_0_on_x, colour = 'True Function')) + # Changed the label
     geom_line(aes(y = avg, colour = 'Estimate by MC')) + # Changed the label
     ylab("Function value") +
@@ -816,12 +832,171 @@ plot_mean_true <- function(res_MC, x_evaluation,J){
       values = c("True Function" = "blue", "Estimate by MC" = "red") # Customize colors
     ) +
     ggtitle(paste("True Function vs Estimation (n_MC =", n_MC, ", J =", J, ")"))
-}
+  return(graph)
+  }
 
-plot_mean_true(test, seq(-2, 2, by = 0.1), 10)
+#plot_mean_true(test, seq(-2, 2, by = 0.1), 10)
 
 
 # à faire pour plusieurs paramètres, plusieurs tailles de data set... (modifier les titres etc s'il faut)
+
+#### Monte Carlo avec sélection de J ####
+MC_CV <- function(method, n_MC, vect_J_to_test, p_train, degree, x_grid, g_0, case, data_param){
+  list_W <- list()
+  list_Y <- list()
+  list_Z <- list()
+  
+  list_J_opt <- rep(0, n_MC)
+  list_gamma_opt <- list()
+  list_g_hat_on_x <- list()
+  
+  for (n in 1:n_MC){
+    #generate data 
+    simul <- simulate_data_3(data_param, g_0, case)
+    W <- simul$W
+    Y <- simul$Y
+    Z <- simul$Z
+    
+    list_W[[n]] <- W
+    list_Y[[n]] <- Y
+    list_Z[[n]] <- Z
+    
+    #compute everything 
+    if (method == 'CV_M'){
+      res <- optimization_CV_M(Z, W, Y, vect_J_to_test, p_train, degree, x_grid)}
+    if (method == 'CV_MSE'){
+      res <- optimization_CV_MSE(Z, W, Y, vect_J_to_test, p_train, degree, x_grid)
+    }
+    
+    #compute the optimal J 
+    J_opt <- res$J_opt
+    list_J_opt[n] <- J_opt
+    
+    #compute the gamma_J_opt
+    gamma_hat_J_opt <- res$gamma_hat_j_opt
+    list_gamma_opt[[n]] <- gamma_hat_J_opt
+    
+    #compute the function on the grid
+    g_hat_on_x <- res$g_hat_on_x_opt
+    list_g_hat_on_x[[n]] <- g_hat_on_x
+  }
+  
+  g_0_on_x <- g_0(x_grid, case)
+  
+  return(list(list_J_opt = list_J_opt, list_gamma = list_gamma_opt, 
+              list_g_hat_on_x = list_g_hat_on_x, g_0_on_x = g_0_on_x,
+              list_W = list_W, list_Y = list_Y, list_Z = list_Z))
+}
+
+#MC_CV('CV_MSE',10, c(4, 6, 10), 0.5, 3, seq(-2, 2, by = 0.1), g_sim_3, 2, c(200, 0.5, 0.9))
+
+MC_lepski_boot <- function(n_MC, n_boot, valid_dim, x_grid, degree, g_0, case, data_param){
+  list_W <- list()
+  list_Y <- list()
+  list_Z <- list()
+  
+  list_J_opt <- rep(0, n_MC)
+  list_gamma_opt <- list()
+  list_g_hat_on_x <- list()
+  for (n in 1:n_MC){
+    #generate data 
+    simul <- simulate_data_3(data_param, g_0, case)
+    W <- simul$W
+    Y <- simul$Y
+    Z <- simul$Z
+    
+    list_W[[n]] <- W
+    list_Y[[n]] <- Y
+    list_Z[[n]] <- Z
+    
+    #compute the optimal J 
+    J_opt <- lepski_bootstrap(n_boot, valid_dim, x_grid, W, Z, Y, degree)
+    list_J_opt[n] <- J_opt
+    
+    #compute the gamma_J_opt
+    gamma_hat_J_opt <- estimation_gamma(J_opt, W, Z, Y, degree)
+    list_gamma_opt[[n]] <- gamma_hat_J_opt
+    
+    #compute the function on the grid
+    basis <- create_dyadic_P_splines(x_grid, Z, J_opt, degree)
+    g_hat_on_x <- basis%*%gamma_hat_J_opt
+    list_g_hat_on_x[[n]] <- g_hat_on_x
+  }
+  
+  g_0_on_x <- g_0(x_grid, case)
+  
+  return(list(list_J_opt = list_J_opt, list_gamma = list_gamma_opt, 
+              list_g_hat_on_x = list_g_hat_on_x, g_0_on_x = g_0_on_x,
+              list_W = list_W, list_Y = list_Y, list_Z = list_Z))
+}
+
+#test <- MC_lepski_boot(2, 10, valid_dim, seq(-2, 2, by = 0.1), 3, g_sim_3, 2, c(200, 0.5, 0.9))
+
+MC_lepski <-  function(n_MC, x_eval, degree, valid_dim, g_0, case, data_param){
+  c_0 = 10
+  list_W <- list()
+  list_Y <- list()
+  list_Z <- list()
+  
+  list_J_opt <- rep(0, n_MC)
+  list_gamma_opt <- list()
+  list_g_hat_on_x <- list()
+  
+  for (n in 1:n_MC){
+    #generate data 
+    simul <- simulate_data_3(data_param, g_0, case)
+    W <- simul$W
+    Y <- simul$Y
+    Z <- simul$Z
+    
+    list_W[[n]] <- W
+    list_Y[[n]] <- Y
+    list_Z[[n]] <- Z
+    
+    #compute the optimal J 
+    J_opt <- lepski_chen(c_0, W, Z, Y, degree, valid_dim)
+    list_J_opt[n] <- J_opt
+    
+    #compute the gamma_J_opt
+    gamma_hat_J_opt <- estimation_gamma(J_opt, W, Z, Y, degree)
+    list_gamma_opt[[n]] <- gamma_hat_J_opt
+    
+    #compute the function on the grid
+    basis <- create_dyadic_P_splines(x_eval, Z, J_opt, degree)
+    g_hat_on_x <- basis%*%gamma_hat_J_opt
+    list_g_hat_on_x[[n]] <- g_hat_on_x
+  }
+  
+  g_0_on_x <- g_0(x_eval, case)
+  
+  return(list(list_J_opt = list_J_opt, list_gamma = list_gamma_opt, 
+              list_g_hat_on_x = list_g_hat_on_x, g_0_on_x = g_0_on_x,
+              list_W = list_W, list_Y = list_Y, list_Z = list_Z))
+}
+
+
+MC_selection <- function(method, n_MC, vect_J_to_test, p_train, degree, x_grid, n_boot, valid_dim, g_0, case, data_param, bool_plot){ #x_grid pour évaluer
+  if (method == 'CV_M' || method == 'CV_MSE'){
+    MC_CV_res = MC_CV(method, n_MC, vect_J_to_test, p_train, degree, x_grid, g_0, case, data_param)
+    if (bool_plot == 1){
+      plot(plot_mean_true(MC_CV_res, seq(-2, 2, by = 0.1), method))}
+    return(MC_CV_res)
+  }
+  if (method == 'lepski_boot'){
+    MC_lepski_boot_res = MC_lepski_boot(n_MC, n_boot, valid_dim, x_grid, degree, g_0, case, data_param)
+    if (bool_plot == 1){
+      plot(plot_mean_true(MC_lepski_boot_res, seq(-2, 2, by = 0.1), method))}
+    return(MC_lepski_boot_res)
+  }
+  if (method == 'lepski'){
+    MC_lepski_res = MC_lepski(n_MC, x_grid, degree, valid_dim, g_0, case, data_param)
+    if (bool_plot == 1){
+      plot(plot_mean_true(MC_lepski_res, seq(-2, 2, by = 0.1), method))}
+    return(MC_lepski_res)
+  }
+}
+
+#MC_selection('lepski_boot', 10, c(4, 6, 10), 0.5, 3, seq(-2, 2, by=0.1), 1, valid_dim, g_sim_3, 2, c(200, 0.5, 0.9), 1)
 
 
 
