@@ -18,10 +18,9 @@ parameter_combinations <- expand.grid(
   Rhouv_Rhozw = seq_along(Rhouv_Rhozw) # Use indices for combinations
 )
 
-J_val <- c(c(4, 6, 10, 18, 34)) 
+J_val <- c(4, 6, 10, 18, 34) 
 
-nrcore <- 40
-cl <- makeCluster(mc <- getOption("cl.cores", nrcore))
+cl <- createCluster()
 registerDoParallel(cl)
 degree = 3
 x_evaluation = seq(-2, 2, length.out = 100)
@@ -53,6 +52,37 @@ foreach (j=1:nrow(parameter_combinations))%dopar%{
 }
 
 stopCluster(cl)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #### Simulation : degree = 3, J = 4, n = 200,rho_1 = 0.5, rho_2 = 0.9, case2 ####
 # First, evaluate performances for different values of J 
