@@ -34,7 +34,7 @@ kernel_functions <- function(x,ker='normal',knorm="sq")
   return(aux)
 }
 
-create_W <- function(W, h=1 ,ker='normal',knorm="sq",remove=FALSE)
+create_W <- function(W, h=1 ,ker='laplace',knorm="sq",remove=FALSE)
 {
   #   ICM and smoothing matrix 
   #   If no bandwidth is provided for the function, h=1 is used  (no smoothing)
@@ -598,7 +598,7 @@ lepski_bootstrap <- function(n_boot,valid_dim,x_grid, W, Z, Y, degree){#attentio
   for (i in 1:n_boot){
     T_i[i] = T_stat_D(x_grid, Y, Z, W, degree, I_hat, W_boot_matrix[i,], list_M_boot, matrix_sigma_all_j_all_x, matrix_all_u, matrix_sigma_all_j_j2_all_x) 
   }
-  alpha = min(0.5, sqrt(log(J_max)/J_max))
+  alpha = min(0.5, 1/J_max)
   theta = quantile(T_i, probs = 1 - alpha)
   
   J_n_hat = I_hat[length(I_hat)-1] #on prend l'avant dernier pour être le plus petit strict
@@ -997,8 +997,6 @@ MC_selection <- function(method, n_MC, vect_J_to_test, p_train, degree, x_grid, 
 }
 
 #MC_selection('lepski_boot', 10, c(4, 6, 10), 0.5, 3, seq(-2, 2, by=0.1), 1, valid_dim, g_sim_3, 2, c(200, 0.5, 0.9), 1)
-
-
 
 
 
