@@ -810,7 +810,7 @@ compute_perf <- function(res_MC, measure){
 # ok on a bien MSE = var + bias -> à faire : créer grille avec résultats
 
 library(ggplot2)
-plot_mean_true <- function(res_MC, x_evaluation,J){
+plot_mean_true <- function(res_MC, x_evaluation,J, degree, rhozw, rhouv, case){
   n_MC = length(res_MC$list_gamma)
   n_val = length(res_MC$list_g_hat_on_x[[1]])
   
@@ -831,14 +831,45 @@ plot_mean_true <- function(res_MC, x_evaluation,J){
       name = "Functions", # Change this to your desired legend title
       values = c("True Function" = "blue", "Estimate by MC" = "red") # Customize colors
     ) +
-    ggtitle(paste("True Function vs Estimation (n_MC =", n_MC, ", J =", J, ")"))
+    ggtitle(paste("True vs avg, (n_MC =", n_MC, ", n_val =", n_val, ", rhowz =", rhozw, ", rhouv =", rhouv, ", degree =", degree, ", case = ", case, ", J =", J, ")"))
   return(graph)
   }
 
 #plot_mean_true(test, seq(-2, 2, by = 0.1), 10)
 
+plot_allcurves_true <- function(res_MC, x_evaluation,J, degree, rhozw, rhouv, case){
+  n_MC = length(res_MC$list_gamma)
+  data_allcurves <- do.call(rbind, lapply(1:n_MC, function(i) data.frame(
+    x = x_evaluation,
+    y = res_MC$list_g_hat_on_x[[i]],
+    id = i
+  )))
+  
+  true_values <- data.frame(x = x_evaluation, y = res_MC$g_0_on_x)
+  
+  n_val = length(res_MC$list_g_hat_on_x[[1]])
+  #compute the avg
+  avg <- rep(0, n_val)
+  for (x in 1:n_val){
+    for (n in 1:n_MC){
+      avg[x] <- avg[x] + res_MC$list_g_hat_on_x[[n]][x]/n_MC
+    }}
+  
+  data_avg <- data.frame(x = x_evaluation, y = avg)
+  
+  ggplot() +
+    geom_line(data = data_allcurves, aes(x = x, y = y, group = id,  color = "Estimated functions"), alpha = 0.5) +  # Estimations
+    geom_line(data = true_values, aes(x = x, y = y, color = "True Function"), size = 1.2) +    # True function
+    geom_line(data = data_avg, aes(x = x, y = y, color = "Average Estimate"), size = 1) +
+    scale_color_manual(name = "Legend",
+                       values = c("Estimated functions" = "grey", "True Function" = "green", "Average Estimate" = "black")) +
+    theme_minimal() +
+    labs(x = "Grid for estimation",
+         y = "Estimated values of g")+
+    ggtitle(paste("MC results, (n_MC =", n_MC, ", n_val =", n_val, ", rhowz =", rhozw, ", rhouv =", rhouv, ", degree =", degree, ", case = ", case, ", J =", J, ")"))
+  
+}
 
-# à faire pour plusieurs paramètres, plusieurs tailles de data set... (modifier les titres etc s'il faut)
 
 #### Monte Carlo avec sélection de J ####
 MC_CV <- function(method, n_MC, vect_J_to_test, p_train, degree, x_grid, g_0, case, data_param){
@@ -888,7 +919,9 @@ MC_CV <- function(method, n_MC, vect_J_to_test, p_train, degree, x_grid, g_0, ca
               list_W = list_W, list_Y = list_Y, list_Z = list_Z))
 }
 
-#MC_CV('CV_MSE',10, c(4, 6, 10), 0.5, 3, seq(-2, 2, by = 0.1), g_sim_3, 2, c(200, 0.5, 0.9))
+#test <- MC_CV('CV_MSE',100, c(4, 6, 10), 0.5, 3, seq(-2, 2, by = 0.1), g_sim_3, 2, c(400, 0.5, 0.9))
+# fonctionne pas tjrs : pb, voir comment gérer ça pour continuer les simus
+
 
 MC_lepski_boot <- function(n_MC, n_boot, valid_dim, x_grid, degree, g_0, case, data_param){
   list_W <- list()

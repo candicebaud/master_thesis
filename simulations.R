@@ -1,4 +1,5 @@
 #### Import code ####
+#setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/github/master_thesis")
 source("code_b_splines_monte_carlo.R")
 library(splines)
 library(MASS)
@@ -6,8 +7,9 @@ library(caret)
 library(expm)
 library(foreach)
 library(doParallel)
+library(ggplot2)
 
-#### Simulations avec le cluster ####
+#### Simulations avec le cluster (J fixé) ####
 N_values <- c(200, 400, 1000, 2500)
 Cases <- c(2, 3)
 Rhouv_Rhozw <- list(c(0.5, 0.9), c(0.8, 0.9), c(0.8, 0.7))
@@ -31,8 +33,8 @@ foreach (j=1:nrow(parameter_combinations))%dopar%{
   params <- parameter_combinations[j,]
   rhouv <- as.numeric(Rhouv_Rhozw[[params$Rhouv_Rhozw]][1])
   rhozw <- as.numeric(Rhouv_Rhozw[[params$Rhouv_Rhozw]][2])
-  case <- as.numeric(param$Case)
-  n_val <- as.numeric(param$N)
+  case <- as.numeric(params$Case)
+  n_val <- as.numeric(params$N)
   data_param = c(n_val, rhouv, rhozw)
   for (i in 1:length(J_val)){
     J <- J_val[i]
@@ -45,37 +47,13 @@ foreach (j=1:nrow(parameter_combinations))%dopar%{
     perf_MC[3] = compute_perf(MC, 'Var')
     perf_MC[4] = compute_perf(MC, 'MSE')
     perf_MC[5] = compute_perf(MC, 'bias')
+    save(MC,file=filename_MC)
+    save(perf_MC,file=filename_perf)
   }
   
-  save(MC,file=filename_MC)
-  save(perf_MC,file=filename_perf)
 }
 
 stopCluster(cl)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
