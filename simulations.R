@@ -22,6 +22,7 @@ parameter_combinations <- expand.grid(
 
 J_val <- c(4, 6, 10, 18, 34) 
 
+source("/softs/R/createCluster .R")
 cl <- createCluster()
 registerDoParallel(cl)
 degree = 3
