@@ -91,8 +91,15 @@ estimation_gamma <- function(J, W, Z, Y, degree){ # J = (2^{l}-1) + degree
   P <- create_dyadic_P_splines(Z, Z, J, degree)
   #compute gamma
   gamma_step = t(P)%*%Omega%*%Y
-  gamma_step_invert = solve(t(P)%*%Omega%*%P)
-  gamma_hat = gamma_step_invert%*%gamma_step
+  mat = t(P)%*%Omega%*%P
+  if (det(mat) > 0){
+    gamma_step_invert = solve(t(P)%*%Omega%*%P)
+    gamma_hat = gamma_step_invert%*%gamma_step}
+  else{
+    #gamma_step_invert = solve(t(P)%*%Omega%*%P + 0.1*diag(1, J)) #première solution
+    gamma_hat = rep(0, J) #2e solution : pour identifier les cas où c'est tout pourri pcq ça marche pas
+  }
+  
   return(gamma_hat)
 }
 
@@ -919,11 +926,11 @@ MC_CV <- function(method, n_MC, vect_J_to_test, p_train, degree, x_grid, g_0, ca
               list_W = list_W, list_Y = list_Y, list_Z = list_Z))
 }
 
-#test <- MC_CV('CV_MSE',100, c(4, 6, 10), 0.5, 3, seq(-2, 2, by = 0.1), g_sim_3, 2, c(400, 0.5, 0.9))
+test <- MC_CV('CV_MSE',100, c(4, 6, 10), 0.8, 3, seq(-2, 2, by = 0.1), g_sim_3, 2, c(200, 0.5, 0.9))
 # fonctionne pas tjrs : pb, voir comment gérer ça pour continuer les simus
 
 
-MC_lepski_boot <- function(n_MC, n_boot, valid_dim, x_grid, degree, g_0, case, data_param){
+MC_lepski_boot <- function(n_MC, n_boot, x_eval, valid_dim, degree, g_0, case, data_param){
   list_W <- list()
   list_Y <- list()
   list_Z <- list()
@@ -943,6 +950,7 @@ MC_lepski_boot <- function(n_MC, n_boot, valid_dim, x_grid, degree, g_0, case, d
     list_Z[[n]] <- Z
     
     #compute the optimal J 
+    x_grid = seq(min(Y), max(Y), length.out = 200)
     J_opt <- lepski_bootstrap(n_boot, valid_dim, x_grid, W, Z, Y, degree)
     list_J_opt[n] <- J_opt
     
@@ -951,12 +959,12 @@ MC_lepski_boot <- function(n_MC, n_boot, valid_dim, x_grid, degree, g_0, case, d
     list_gamma_opt[[n]] <- gamma_hat_J_opt
     
     #compute the function on the grid
-    basis <- create_dyadic_P_splines(x_grid, Z, J_opt, degree)
+    basis <- create_dyadic_P_splines(x_eval, Z, J_opt, degree)
     g_hat_on_x <- basis%*%gamma_hat_J_opt
     list_g_hat_on_x[[n]] <- g_hat_on_x
   }
   
-  g_0_on_x <- g_0(x_grid, case)
+  g_0_on_x <- g_0(x_eval, case)
   
   return(list(list_J_opt = list_J_opt, list_gamma = list_gamma_opt, 
               list_g_hat_on_x = list_g_hat_on_x, g_0_on_x = g_0_on_x,
