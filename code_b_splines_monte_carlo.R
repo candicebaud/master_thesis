@@ -82,6 +82,16 @@ create_dyadic_P_splines <- function(x, Z, J, degree){
 
 
 # compute gamma_hat
+verify_solve_is_working <- function(mat) {
+  result <- tryCatch({
+    solve(mat) # Attempt to invert the matrix
+    TRUE       # If successful, return TRUE
+  }, error = function(e) {
+    FALSE      # If an error occurs, return FALSE
+  })
+  return(result)
+}
+
 estimation_gamma <- function(J, W, Z, Y, degree){ # J = (2^{l}-1) + degree
   n = length(Z)
   #compute Omega
@@ -92,7 +102,10 @@ estimation_gamma <- function(J, W, Z, Y, degree){ # J = (2^{l}-1) + degree
   #compute gamma
   gamma_step = t(P)%*%Omega%*%Y
   mat = t(P)%*%Omega%*%P
-  if (det(mat) > 0){
+  
+  bool = verify_solve_is_working(mat)
+
+  if (bool == TRUE){
     gamma_step_invert = solve(t(P)%*%Omega%*%P)
     gamma_hat = gamma_step_invert%*%gamma_step}
   else{
@@ -102,7 +115,6 @@ estimation_gamma <- function(J, W, Z, Y, degree){ # J = (2^{l}-1) + degree
   
   return(gamma_hat)
 }
-
 
 #### Data simulation #### 
 simulate_data_3 <- function(data_param, g_sim, case){
@@ -926,7 +938,7 @@ MC_CV <- function(method, n_MC, vect_J_to_test, p_train, degree, x_grid, g_0, ca
               list_W = list_W, list_Y = list_Y, list_Z = list_Z))
 }
 
-test <- MC_CV('CV_MSE',100, c(4, 6, 10), 0.8, 3, seq(-2, 2, by = 0.1), g_sim_3, 2, c(200, 0.5, 0.9))
+#test <- MC_CV('CV_MSE',100, c(4, 6, 10), 0.8, 3, seq(-2, 2, by = 0.1), g_sim_3, 2, c(200, 0.5, 0.9))
 # fonctionne pas tjrs : pb, voir comment gérer ça pour continuer les simus
 
 
@@ -1038,8 +1050,5 @@ MC_selection <- function(method, n_MC, vect_J_to_test, p_train, degree, x_grid, 
 }
 
 #MC_selection('lepski_boot', 10, c(4, 6, 10), 0.5, 3, seq(-2, 2, by=0.1), 1, valid_dim, g_sim_3, 2, c(200, 0.5, 0.9), 1)
-
-
-
 
 
