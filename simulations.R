@@ -10,6 +10,13 @@ library(doParallel)
 library(ggplot2)
 
 #### Simulations avec le cluster (J fixé) ####
+source("/softs/R/createCluster.R")
+cl <- createCluster()
+registerDoParallel(cl)
+degree = 3
+x_evaluation = seq(-2, 2, length.out = 100)
+n_MC = 2000
+
 N_values <- c(200, 400, 1000, 2500)
 Cases <- c(2, 3)
 Rhouv_Rhozw <- list(c(0.5, 0.9), c(0.8, 0.9), c(0.8, 0.7))
@@ -21,14 +28,6 @@ parameter_combinations <- expand.grid(
 )
 
 J_val <- c(4, 6, 10, 18, 34) 
-
-source("/softs/R/createCluster.R")
-cl <- createCluster()
-registerDoParallel(cl)
-degree = 3
-x_evaluation = seq(-2, 2, length.out = 100)
-n_MC = 2000
-
 
 foreach (j=1:nrow(parameter_combinations))%dopar%{
   params <- parameter_combinations[j,]
@@ -44,15 +43,20 @@ foreach (j=1:nrow(parameter_combinations))%dopar%{
     MC <- MC_fixed_J(J, n_MC, degree, x_evaluation, g_sim_3, case, data_param)
     
     zero_indices <- which(sapply(MC$list_gamma, function(x) all(x == 0)))
-    filtered_gamma <- MC$list_gamma[-zero_indices]
-    filtered_g_hat_on_x <- MC$list_g_hat_on_x[-zero_indices]
-    filtered_W <- MC$list_W[-zero_indices]
-    filtered_Y <- MC$list_Y[-zero_indices]
-    filtered_Z <- MC$list_Z[-zero_indices]
     
-    new_MC <- list(list_gamma = filtered_gamma, list_g_hat_on_x = filtered_g_hat_on_x, 
-                   list_W = filtered_W, list_Y = filtered_Y, list_Z = filtered_Z, 
-                   g_0_on_x = MC$g_0_on_x)
+    if (length(zero_indices)>0){
+      filtered_gamma <- MC$list_gamma[-zero_indices]
+      filtered_g_hat_on_x <- MC$list_g_hat_on_x[-zero_indices]
+      filtered_W <- MC$list_W[-zero_indices]
+      filtered_Y <- MC$list_Y[-zero_indices]
+      filtered_Z <- MC$list_Z[-zero_indices]
+      
+      new_MC <- list(list_gamma = filtered_gamma, list_g_hat_on_x = filtered_g_hat_on_x, 
+                     list_W = filtered_W, list_Y = filtered_Y, list_Z = filtered_Z, 
+                     g_0_on_x = MC$g_0_on_x)
+    }else{
+      new_MC <- MC
+    }
     
     perf_MC <- rep(0, 5)
     perf_MC[1] = compute_perf(new_MC, 'M')
