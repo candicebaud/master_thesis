@@ -21,6 +21,8 @@ parameter_combinations <- expand.grid(
   Rhouv_Rhozw = seq_along(Rhouv_Rhozw) # Use indices for combinations
 )
 
+
+source("/softs/R/createCluster.R")
 cl <- createCluster()
 registerDoParallel(cl)
 degree = 3
@@ -41,22 +43,22 @@ foreach (j=1:nrow(parameter_combinations))%dopar%{
   data_param = c(n_val, rhouv, rhozw)
   
   #selection par CV_M
-  opt_CV_M <- MC_CV('CV_M', 2000, J_val_CV, p_train, degree, x_evaluation, g_sim_3, case, data_param)
+  opt_CV_M <- MC_CV('CV_M', n_MC, J_val_CV, p_train, degree, x_evaluation, g_sim_3, case, data_param)
   filename = paste ("opt_CV_M_2000", "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
   save(opt_CV_M,file=filename)
   
   #selection par CV_MSE
-  opt_CV_MSE <- MC_CV('CV_MSE', 2000, J_val_CV, p_train, degree, x_evaluation, g_sim_3, case, data_param)
+  opt_CV_MSE <- MC_CV('CV_MSE', n_MC, J_val_CV, p_train, degree, x_evaluation, g_sim_3, case, data_param)
   filename = paste ("opt_CV_MSE_2000", "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
   save(opt_CV_MSE,file=filename)
   
   #selection by lepski boot
-  opt_lepski_boot <- MC_lepski_boot(2000, 1000, x_evaluation, valid_dim, degree, g_sim_3, case, data_param)
+  opt_lepski_boot <- MC_lepski_boot(n_MC, 1000, x_evaluation, valid_dim, degree, g_sim_3, case, data_param)
   filename = paste ("opt_lepski_boot_2000", "_grid", 1000, "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
   save(opt_lepski_boot,file=filename)
   
   #selection by lepski
-  opt_lepski <- MC_lepski(2000, x_evaluation, degree, valid_dim, g_sim_3, case, data_param)
+  opt_lepski <- MC_lepski(n_MC, x_evaluation, degree, valid_dim, g_sim_3, case, data_param)
   filename = paste ("opt_lepski_2000", "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
   save(opt_lepski,file=filename)
 
