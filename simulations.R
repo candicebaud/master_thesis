@@ -42,13 +42,25 @@ foreach (j=1:nrow(parameter_combinations))%dopar%{
     filename_MC <- paste ("MC2000_fixedJ", "_J", J, "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
     filename_perf <- paste ("perf2000_fixedJ", "_J", J, "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
     MC <- MC_fixed_J(J, n_MC, degree, x_evaluation, g_sim_3, case, data_param)
+    
+    zero_indices <- which(sapply(MC$list_gamma, function(x) all(x == 0)))
+    filtered_gamma <- MC$list_gamma[-zero_indices]
+    filtered_g_hat_on_x <- MC$list_g_hat_on_x[-zero_indices]
+    filtered_W <- MC$list_W[-zero_indices]
+    filtered_Y <- MC$list_Y[-zero_indices]
+    filtered_Z <- MC$list_Z[-zero_indices]
+    
+    new_MC <- list(list_gamma = filtered_gamma, list_g_hat_on_x = filtered_g_hat_on_x, 
+                   list_W = filtered_W, list_Y = filtered_Y, list_Z = filtered_Z, 
+                   g_0_on_x = MC$g_0_on_x)
+    
     perf_MC <- rep(0, 5)
-    perf_MC[1] = compute_perf(MC, 'M')
-    perf_MC[2] = compute_perf(MC, 'supnorm')
-    perf_MC[3] = compute_perf(MC, 'Var')
-    perf_MC[4] = compute_perf(MC, 'MSE')
-    perf_MC[5] = compute_perf(MC, 'bias')
-    save(MC,file=filename_MC)
+    perf_MC[1] = compute_perf(new_MC, 'M')
+    perf_MC[2] = compute_perf(new_MC, 'supnorm')
+    perf_MC[3] = compute_perf(new_MC, 'Var')
+    perf_MC[4] = compute_perf(new_MC, 'MSE')
+    perf_MC[5] = compute_perf(new_MC, 'bias')
+    save(new_MC,file=filename_MC)
     save(perf_MC,file=filename_perf)
   }
   
