@@ -1051,4 +1051,23 @@ MC_selection <- function(method, n_MC, vect_J_to_test, p_train, degree, x_grid, 
 
 #MC_selection('lepski_boot', 10, c(4, 6, 10), 0.5, 3, seq(-2, 2, by=0.1), 1, valid_dim, g_sim_3, 2, c(200, 0.5, 0.9), 1)
 
-
+#compute perf quand on a des valeurs zeros
+compute_new_MC_selection <- function(MC){
+  zero_indices <- which(sapply(MC$list_gamma, function(x) all(x == 0)))
+  
+  if (length(zero_indices)>0){
+    filtered_gamma <- MC$list_gamma[-zero_indices]
+    filtered_g_hat_on_x <- MC$list_g_hat_on_x[-zero_indices]
+    filtered_W <- MC$list_W[-zero_indices]
+    filtered_Y <- MC$list_Y[-zero_indices]
+    filtered_Z <- MC$list_Z[-zero_indices]
+    filtered_J_opt <- MC$list_J_opt
+    
+    new_MC <- list(list_J_opt = filtered_J_opt, list_gamma = filtered_gamma, list_g_hat_on_x = filtered_g_hat_on_x, 
+                   list_W = filtered_W, list_Y = filtered_Y, list_Z = filtered_Z, 
+                   g_0_on_x = MC$g_0_on_x)
+  }else{
+    new_MC <- MC
+  }
+  return(new_MC)
+}
