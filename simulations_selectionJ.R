@@ -45,7 +45,7 @@ foreach (j=1:nrow(parameter_combinations))%dopar%{
   opt_CV_M <- MC_CV('CV_M', n_MC, J_val_CV, p_train, degree, x_evaluation, g_sim_3, case, data_param)
   new_opt_CV_M <- compute_new_MC_selection(opt_CV_M)
   filename = paste("opt_CV_M_2000", "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
-  save(opt_CV_M,file=new_opt_CV_M)
+  save(new_opt_CV_M,file=filename)
   perf_CV_M <- rep(0, 5)
   perf_CV_M[1] = compute_perf(new_opt_CV_M, 'M')
   perf_CV_M[2] = compute_perf(new_opt_CV_M, 'supnorm')
