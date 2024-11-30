@@ -371,8 +371,18 @@ compute_M_bootstrap <- function(J, W, Z, Y, degree){
   
   #compute gamma
   M_boot_step = t(P)%*%Omega
-  M_boot_step_invert = solve(t(P)%*%Omega%*%P)
-  M_boot = M_boot_step_invert%*%M_boot_step
+  mat = t(P)%*%Omega%*%P
+  
+  bool = verify_solve_is_working(mat)
+  
+  if (bool == TRUE){
+    M_boot_step_invert = solve(t(P)%*%Omega%*%P)
+    M_boot = M_boot_step_invert%*%M_boot_step}
+  else{
+    #gamma_step_invert = solve(t(P)%*%Omega%*%P + 0.1*diag(1, J)) #première solution
+    M_boot_step_invert = matrix(0, nrow = J, ncol = J) #2e solution : pour identifier les cas où c'est tout pourri pcq ça marche pas
+    M_boot = M_boot_step_invert%*%M_boot_step
+    }
   
   return(M_boot)
 }
@@ -501,23 +511,13 @@ valid_dim <- function(J, degree){
     }else{return(TRUE)}}}
 
 
-#tests
-#for (n in 1:10){
-#  print(n)
-#  simul <- simulate_data_3(c(400, 0.5, 0.9), g_sim_3, 2)
-#  J_test <- compute_J_max(simul$W, simul$Z, simul$Y, 3)
-#  print(J_test)
-#  J_test <- 18
-#  gamma_test <- estimation_gamma(J_test, simul$W, simul$Z, simul$Y, 3)}
-
 
 
 lepski_bootstrap <- function(n_boot,valid_dim,x_grid, W, Z, Y, degree){#attention : ici x_grid juste pour calculer les sup norm
   n = length(Z)
   J_max = compute_J_max(W, Z, Y, degree)
-  print(J_max)
   #J_max = 18
-  I_hat = seq(as.integer(0.1 * (log(J_max)^2))+1, as.integer(J_max), by = 1) #on commence au moins à 2 parce que 1 c'est pas une bonne solution
+  I_hat = seq(as.integer(0.1*(log(J_max)^2))+1, as.integer(J_max), by = 1) #on commence au moins à 2 parce que 1 c'est pas une bonne solution
   I_hat = sort(I_hat[sapply(I_hat,valid_dim, degree)]) #select only the valid dimensions
   length_I_hat = length(I_hat)
   
@@ -526,7 +526,6 @@ lepski_bootstrap <- function(n_boot,valid_dim,x_grid, W, Z, Y, degree){#attentio
   list_M_boot <- list()
   for (j_index in 1:length_I_hat){
     j = I_hat[j_index]
-    print(j)
     M_boot_j <- compute_M_bootstrap(j, W, Z, Y, degree)
     list_M_boot[[j_index]] <- M_boot_j
     
@@ -646,6 +645,7 @@ compute_J_max <- function(W, Z, Y, degree){
   J = J_next
   s_J_hat = s_2
   if ((prev_ratio <= 10 && new_ratio > 10 && s_J_hat !=999)) {
+    return(J)
   } else {
     while (!(prev_ratio <= 10 && new_ratio > 10 && s_J_hat != 999)){
       J = J + 1
@@ -983,7 +983,11 @@ MC_lepski_boot <- function(n_MC, n_boot, x_eval, valid_dim, degree, g_0, case, d
               list_W = list_W, list_Y = list_Y, list_Z = list_Z))
 }
 
-#test <- MC_lepski_boot(2, 10, valid_dim, seq(-2, 2, by = 0.1), 3, g_sim_3, 2, c(200, 0.5, 0.9))
+
+#test <- MC_lepski_boot(2, 10, seq(-2, 2, by = 0.1),valid_dim, 3, g_sim_3, 2, c(200, 0.5, 0.9))
+
+
+
 
 MC_lepski <-  function(n_MC, x_eval, degree, valid_dim, g_0, case, data_param){
   c_0 = 10
