@@ -52,7 +52,7 @@ foreach (j=1:nrow(parameter_combinations))%dopar%{
   perf_CV_M[3] = compute_perf(new_opt_CV_M, 'Var')
   perf_CV_M[4] = compute_perf(new_opt_CV_M, 'MSE')
   perf_CV_M[5] = compute_perf(new_opt_CV_M, 'bias')
-  filename_perf <- paste ("perf2000_CV_M", "_J", J, "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
+  filename_perf <- paste ("perf2000_CV_M", "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
   save(perf_CV_M,file=filename_perf)
   
   #selection par CV_MSE
@@ -66,7 +66,7 @@ foreach (j=1:nrow(parameter_combinations))%dopar%{
   perf_CV_MSE[3] = compute_perf(new_opt_CV_MSE, 'Var')
   perf_CV_MSE[4] = compute_perf(new_opt_CV_MSE, 'MSE')
   perf_CV_MSE[5] = compute_perf(new_opt_CV_MSE, 'bias')
-  filename_perf <- paste ("perf2000_CV_MSE", "_J", J, "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
+  filename_perf <- paste ("perf2000_CV_MSE", "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
   save(perf_CV_MSE,file=filename_perf)
   
   #selection by lepski boot
@@ -80,7 +80,7 @@ foreach (j=1:nrow(parameter_combinations))%dopar%{
   perf_lepski_boot[3] = compute_perf(new_opt_lepski_boot, 'Var')
   perf_lepski_boot[4] = compute_perf(new_opt_lepski_boot, 'MSE')
   perf_lepski_boot[5] = compute_perf(new_opt_lepski_boot, 'bias')
-  filename_perf <- paste ("perf2000_lepski_boot", "_J", J, "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
+  filename_perf <- paste ("perf2000_lepski_boot", "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
   save(perf_lepski_boot,file=filename_perf)
   
   
@@ -95,7 +95,7 @@ foreach (j=1:nrow(parameter_combinations))%dopar%{
   perf_lepski[3] = compute_perf(new_opt_lepski, 'Var')
   perf_lepski[4] = compute_perf(new_opt_lepski, 'MSE')
   perf_lepski[5] = compute_perf(new_opt_lepski, 'bias')
-  filename_perf <- paste ("perf2000_lepski", "_J", J, "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
+  filename_perf <- paste ("perf2000_lepski", "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
   save(perf_lepski,file=filename_perf)
 
 }
