@@ -1065,7 +1065,7 @@ compute_new_MC_selection <- function(MC){
     filtered_W <- MC$list_W[-zero_indices]
     filtered_Y <- MC$list_Y[-zero_indices]
     filtered_Z <- MC$list_Z[-zero_indices]
-    filtered_J_opt <- MC$list_J_opt
+    filtered_J_opt <- MC$list_J_opt[-zero_indices] #attention
     
     new_MC <- list(list_J_opt = filtered_J_opt, list_gamma = filtered_gamma, list_g_hat_on_x = filtered_g_hat_on_x, 
                    list_W = filtered_W, list_Y = filtered_Y, list_Z = filtered_Z, 
