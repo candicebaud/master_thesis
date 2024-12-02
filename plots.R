@@ -7,6 +7,11 @@ library(caret)
 library(expm)
 library(foreach)
 library(ggplot2)
+library(dplyr)
+library(stringr)
+library(tibble)
+library(xtable)
+library(kableExtra)
 
 
 #### Import the data and plot, for fixed J ####
@@ -30,7 +35,6 @@ setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulatio
 
 #load the data
 degree = 3
-x_evaluation = seq(-2, 2, length.out = 100)
 n_MC = 2000
 
 N_values <- c(200, 400, 1000, 2500)
@@ -66,10 +70,6 @@ vector_names <- ls(pattern = "^perf2000")
 vector_list <- mget(vector_names)
 df <- as.data.frame(do.call(rbind, vector_list))
 
-
-library(dplyr)
-library(stringr)
-
 colnames(df) <- c("Name", "M", "supnorm", "Var", "MSE", "bias")
 df <- df %>%
   mutate(
@@ -81,25 +81,24 @@ df <- df %>%
     n_val = str_extract(Name, "(?<=_n)\\d+")
   )
 
-library(tibble)
 
 df <- df %>%
   rownames_to_column(var = "Temp") %>%   # Create a temporary column for row names
   select(-Temp)
 
-library(xtable)
-library(kableExtra)
+df <- df%>%select(-1)
+df <- df%>%select(n_val, J, case, rhozw, rhouv, degree, M, supnorm, Var, MSE, bias)
+df <- data.frame(lapply(df, as.numeric))
+df <- df[order(df$n_val, df$J), ]
 
-df_ <- df%>%select(-1)
-df_ <- df_%>%select(n_val, J, case, rhozw, rhouv, degree, M, supnorm, Var, MSE, bias)
+df <- data.frame(lapply(df, as.character))
+df <- subset(df, select=-c(degree))
 
-#sort by the n_values and J_values
-df_<- data.frame(lapply(df_, as.numeric))
-df_ <- df_[order(df_$n_val, df_$J), ]
+df_2 <- df %>% filter(case == 2) 
+df_3 <- df %>% filter(case == 3)
 
-
-xtable(df_)
-#%>%kable(digits = 3) %>%kable_styling()
+xtable(df_2)
+xtable(df_3)
 
 
   
