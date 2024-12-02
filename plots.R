@@ -11,14 +11,14 @@ library(ggplot2)
 
 #### Import the data and plot, for fixed J ####
 setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/simu_441463_complete_allJ_benchmark")
-load("MC2000_fixedJ_J4_degree3_rhozw0.9_rhouv0.8_case3_n200.R")
+load("MC2000_fixedJ_J6_degree3_rhozw0.9_rhouv0.8_case2_n400.R")
 
 # filter the things that we can not reuse 
 
 x_evaluation = seq(-2, 2, length.out = 100)
-J = 4
+J = 6
 degree = 3
-case = 3
+case = 2
 rhozw = 0.9
 rhouv = 0.8
 plot_mean_true(new_MC, x_evaluation,J, degree, rhozw, rhouv, case) #: plots the average estimations and the true function
@@ -70,16 +70,36 @@ df <- as.data.frame(do.call(rbind, vector_list))
 library(dplyr)
 library(stringr)
 
-df_ <- df %>%
+colnames(df) <- c("Name", "M", "supnorm", "Var", "MSE", "bias")
+df <- df %>%
   mutate(
-    J = str_extract(V1, "(?<=_J)\\d+"),
-    degree = str_extract(V1, "(?<=_degree)\\d+"),
-    rhozw = str_extract(V1, "(?<=_rhozw)\\d*\\.?\\d+"),
-    rhouv = str_extract(V1, "(?<=_rhouv)\\d*\\.?\\d+"),
-    case = str_extract(V1, "(?<=_case)\\d+"),
-    n_val = str_extract(V1, "(?<=_n)\\d+")
+    J = str_extract(Name, "(?<=_J)\\d+"),
+    degree = str_extract(Name, "(?<=_degree)\\d+"),
+    rhozw = str_extract(Name, "(?<=_rhozw)\\d*\\.?\\d+"),
+    rhouv = str_extract(Name, "(?<=_rhouv)\\d*\\.?\\d+"),
+    case = str_extract(Name, "(?<=_case)\\d+"),
+    n_val = str_extract(Name, "(?<=_n)\\d+")
   )
 
+library(tibble)
+
+df <- df %>%
+  rownames_to_column(var = "Temp") %>%   # Create a temporary column for row names
+  select(-Temp)
+
+library(xtable)
+library(kableExtra)
+
+df_ <- df%>%select(-1)
+df_ <- df_%>%select(n_val, J, case, rhozw, rhouv, degree, M, supnorm, Var, MSE, bias)
+
+#sort by the n_values and J_values
+df_<- data.frame(lapply(df_, as.numeric))
+df_ <- df_[order(df_$n_val, df_$J), ]
+
+
+xtable(df_)
+#%>%kable(digits = 3) %>%kable_styling()
 
 
   
