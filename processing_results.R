@@ -789,12 +789,57 @@ xtable(df_2)
 xtable(df_3)
 
 #install.packages("writexl")
-#library(writexl)
+library(writexl)
 write_xlsx(df, "C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/perf_CV_MSE_NS.xlsx")
 
 
+#### Merge performance and lost files ####
+setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/excel_exported_files/")
+
+# all J 
+library(readxl)
+perf_allJ <- read_excel("perf_all_J.xlsx")
+lost_allJ <- read_excel("all_J_benchmark_lost.xlsx")
+perf_and_lost<- merge(perf_allJ, lost_allJ, by = c("n_val", "J", "case", "rhozw", "rhouv"), all.x = TRUE)
+
+write_xlsx(perf_and_lost, "perf_and_lost_allJ.xlsx")
+
+# all J NS
+perf_allJ_NS <- read_excel("perf_all_J_NS.xlsx")
+lost_allJ_NS <- read_excel("all_J_benchmark_lost_NS.xlsx")
+perf_and_lost<- merge(perf_allJ_NS, lost_allJ_NS, by = c("n_val", "J", "case", "rhozw", "rhouv"), all.x = TRUE)
+
+write_xlsx(perf_and_lost, "perf_and_lost_allJ_NS.xlsx")
+
+# CV M 
+perf_allJ_CVM <- read_excel("perf_CV_M.xlsx")
+lost_allJ_CVM <- read_excel("CVM_lost.xlsx")
+perf_and_lost<- merge(perf_allJ_CVM, lost_allJ_CVM, by = c("n_val", "case", "rhozw", "rhouv"), all.x = TRUE)
+
+write_xlsx(perf_and_lost, "perf_and_lost_CVM.xlsx")
 
 
+# CV M NS
+perf_allJ_CVM_NS <- read_excel("perf_CV_M_NS.xlsx")
+lost_allJ_CVM_NS <- read_excel("CVM_NS_lost.xlsx")
+perf_and_lost<- merge(perf_allJ_CVM_NS, lost_allJ_CVM_NS, by = c("n_val", "case", "rhozw", "rhouv"), all.x = TRUE)
+
+write_xlsx(perf_and_lost, "perf_and_lost_CVM_NS.xlsx")
+
+
+# CV MSE
+perf_allJ_CVMSE <- read_excel("perf_CV_MSE.xlsx")
+lost_allJ_CVMSE <- read_excel("CVMSE_lost.xlsx")
+perf_and_lost<- merge(perf_allJ_CVMSE, lost_allJ_CVMSE, by = c("n_val", "case", "rhozw", "rhouv"), all.x = TRUE)
+
+write_xlsx(perf_and_lost, "perf_and_lost_CVMSE.xlsx")
+
+# CV MSE NS
+perf_allJ_CVMSE_NS <- read_excel("perf_CV_MSE_NS.xlsx")
+lost_allJ_CVMSE_NS <- read_excel("CVMSE_NS_lost.xlsx")
+perf_and_lost<- merge(perf_allJ_CVMSE_NS, lost_allJ_CVMSE_NS, by = c("n_val", "case", "rhozw", "rhouv"), all.x = TRUE)
+
+write_xlsx(perf_and_lost, "perf_and_lost_CVMSE_NS.xlsx")
 
 #### Performance Lepski ####
 load("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/simu_451418_selectionJ_lepski/opt_lepski_2000_degree3_rhozw0.9_rhouv0.8_case3_n200.R")
