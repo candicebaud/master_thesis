@@ -433,13 +433,6 @@ write_xlsx(df, "C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/
 
 
 
-#### Test ####
-setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/simu_451416_selectionJ_CVM_complete")
-load("opt_CV_M_2000_degree3_rhozw0.7_rhouv0.8_case2_n2500.R")
-length(new_opt_CV_M$list_gamma)
-
-plot_mean_true(new_opt_CV_M, seq(-2, 2, length.out = 100), 'none', 3, 0.7, 0.8,2)
-
 
 
 
@@ -475,3 +468,7 @@ hist(new_opt_CV_M$list_J_opt)
 length(new_opt_CV_M$list_gamma)
 
 load("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/simu_450196_running_selectionJ/selection_timeout/perf2000_lepski_boot_degree3_rhozw0.7_rhouv0.8_case3_n200.R")
+
+
+
+#### Performance Lepski ####
