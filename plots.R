@@ -55,7 +55,6 @@ plot_allcurves_true(new_MC, x_evaluation,J, degree, rhozw, rhouv, case) #: plots
 
 
 
-#### Compare selection methods ####
 
 #### Plot the distribution of the selected values of J_opt ####
 load("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/simu_451416_selectionJ_CVM_complete/opt_CV_M_2000_degree3_rhozw0.7_rhouv0.8_case2_n2500.R")
@@ -71,20 +70,3 @@ load("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation
 
 
 
-#### Performance Lepski ####
-load("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/simu_451418_selectionJ_lepski/opt_lepski_2000_degree3_rhozw0.9_rhouv0.8_case3_n200.R")
-
-unique(new_opt_lepski$list_J_opt)
-length(new_opt_lepski$list_gamma)
-plot_mean_true(new_opt_lepski, seq(-2, 2, length.out = 100), 'non', 3, 0.7, 0.8, 2)
-plot_allcurves_true(new_opt_lepski, seq(-2, 2, length.out = 100), 'none', 3, 0.7, 0.8, 2)
-
-
-load("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/simu_451418_selectionJ_lepski/opt_lepski_2000_degree3_rhozw0.7_rhouv0.8_case3_n200.R")
-length(new_opt_lepski$list_gamma)
-plot_mean_true(new_opt_lepski, seq(-2, 2, length.out = 100), 'non', 3, 0.7, 0.8, 2)
-plot_allcurves_true(new_opt_lepski, seq(-2, 2, length.out = 100), 'none', 3, 0.7, 0.8, 2)
-
-hist(new_opt_lepski$list_J_opt)
-
-unique(new_opt_lepski$list_J_opt)
