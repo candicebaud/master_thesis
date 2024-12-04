@@ -841,6 +841,75 @@ perf_and_lost<- merge(perf_allJ_CVMSE_NS, lost_allJ_CVMSE_NS, by = c("n_val", "c
 
 write_xlsx(perf_and_lost, "perf_and_lost_CVMSE_NS.xlsx")
 
+
+
+#### Export xtable ####
+#library(readxl)
+#library(dplyr)
+setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/excel_exported_files/")
+perf_and_lost_all_J <- read_excel("perf_and_lost_allJ.xlsx")
+perf_and_lost_allJ_NS <- read_excel("perf_and_lost_allJ_NS.xlsx")
+perf_and_lost_CVM <- read_excel("perf_and_lost_CVM.xlsx")
+perf_and_lost_CVM_NS <- read_excel("perf_and_lost_CVM_NS.xlsx")
+perf_and_lost_CVMSE <- read_excel("perf_and_lost_CVMSE.xlsx")
+perf_and_lost_CVMSE_NS <- read_excel("perf_and_lost_CVMSE_NS.xlsx")
+
+format_scientific <- function(x) {
+  # If the number is too small or too large, use scientific notation with integer and power
+  if (abs(x) < 1e-2 || abs(x) >= 1e4) {
+    return(formatC(x, format = "e", digits = 1))  # Format as scientific with 1 digit
+  } else {
+    return(as.character(round(x, 2)))  # Return the number as is if it's in a regular range
+  }
+}
+
+df_names <- ls(pattern = "^perf_and_lost")
+for (name in df_names){
+  df <- get(name)
+  df[] <- lapply(df, as.numeric)
+  if ("M" %in% colnames(df)) {
+    df$M <- sapply(df$M, format_scientific)
+  }
+  if ("supnorm" %in% colnames(df)) {
+    df$supnorm <- sapply(df$supnorm, format_scientific)
+  }
+  if ("MSE" %in% colnames(df)) {
+    df$MSE <- sapply(df$MSE, format_scientific)
+  }
+  if ("Var" %in% colnames(df)) {
+    df$Var <- sapply(df$Var, format_scientific)
+  }
+  if ("bias" %in% colnames(df)) {
+    df$bias <- sapply(df$bias, format_scientific)
+  }
+  
+  if ("J" %in% colnames(df)){
+    df<- df[order(df$n_val, df$J), ]}
+  else{
+    df <- df[order(df$n_val, df$case),]
+  }
+  df <- df %>% select(-c(degree))
+  
+  df <- data.frame(lapply(df, as.character))
+  # Assign the modified data frame back to the global environment
+  assign(name, df)
+}
+
+perf_and_lost_all_J %>% filter(case == "2") %>% xtable(caption = "All J, B spline, case 2")
+perf_and_lost_all_J %>% filter(case == "3") %>% xtable(caption = "All J, B spline, case 3")
+
+perf_and_lost_allJ_NS %>% filter(case == "2") %>% xtable(caption = "All J, natural spline, case 2")
+perf_and_lost_allJ_NS %>% filter(case == "3") %>% xtable(caption = "All J, natural spline, case 3")
+
+perf_and_lost_CVM %>% xtable(caption = "CVM, B spline")
+perf_and_lost_CVM_NS %>% xtable(caption = "CVM, natural spline")
+
+perf_and_lost_CVMSE %>% xtable(caption = "CVMSE, B spline")
+perf_and_lost_CVMSE_NS %>% xtable(caption = "CVMSE, natural spline")
+
+
+
+
 #### Performance Lepski ####
 load("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/simu_451418_selectionJ_lepski/opt_lepski_2000_degree3_rhozw0.9_rhouv0.8_case3_n200.R")
 
