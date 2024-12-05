@@ -1,6 +1,6 @@
 #### Source code ####
-setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/github/master_thesis")
-source("code_b_splines_monte_carlo.R")
+#setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/github/master_thesis")
+#source("code_b_splines_monte_carlo.R")
 library(splines)
 library(MASS)
 library(caret)
@@ -12,6 +12,68 @@ library(stringr)
 library(tibble)
 library(xtable)
 library(kableExtra)
+
+#### Functions to plot ####
+library(ggplot2)
+plot_mean_true <- function(res_MC, x_evaluation,J, degree, rhozw, rhouv, case){
+  n_MC = length(res_MC$list_gamma)
+  n_val = length(res_MC$list_g_hat_on_x[[1]])
+  
+  #compute the avg
+  avg <- rep(0, n_val)
+  for (x in 1:n_val){
+    for (n in 1:n_MC){
+      avg[x] <- avg[x] + res_MC$list_g_hat_on_x[[n]][x]/n_MC
+    }}
+  
+  data <- data.frame(x_evaluation, avg, g_0_on_x = res_MC$g_0_on_x)
+  graph <- ggplot(data, aes(x = x_evaluation)) +
+    geom_line(aes(y = g_0_on_x, colour = 'True Function')) + # Changed the label
+    geom_line(aes(y = avg, colour = 'Estimate by MC')) + # Changed the label
+    ylab("Function value") +
+    xlab("Evaluation points") + 
+    scale_colour_manual(
+      name = "Functions", # Change this to your desired legend title
+      values = c("True Function" = "blue", "Estimate by MC" = "red") # Customize colors
+    ) +
+    ggtitle(paste("True vs avg, (n_MC =", n_MC, ", n_val =", n_val, ", rhowz =", rhozw, ", rhouv =", rhouv, ", degree =", degree, ", case = ", case, ", J =", J, ")"))
+  return(graph)
+}
+
+#plot_mean_true(test, seq(-2, 2, by = 0.1), 10)
+
+plot_allcurves_true <- function(res_MC, x_evaluation,J, degree, rhozw, rhouv, case){
+  n_MC = length(res_MC$list_gamma)
+  data_allcurves <- do.call(rbind, lapply(1:n_MC, function(i) data.frame(
+    x = x_evaluation,
+    y = res_MC$list_g_hat_on_x[[i]],
+    id = i
+  )))
+  
+  true_values <- data.frame(x = x_evaluation, y = res_MC$g_0_on_x)
+  
+  n_val = length(res_MC$list_g_hat_on_x[[1]])
+  #compute the avg
+  avg <- rep(0, n_val)
+  for (x in 1:n_val){
+    for (n in 1:n_MC){
+      avg[x] <- avg[x] + res_MC$list_g_hat_on_x[[n]][x]/n_MC
+    }}
+  
+  data_avg <- data.frame(x = x_evaluation, y = avg)
+  
+  ggplot() +
+    geom_line(data = data_allcurves, aes(x = x, y = y, group = id,  color = "Estimated functions"), alpha = 0.5) +  # Estimations
+    geom_line(data = true_values, aes(x = x, y = y, color = "True Function"), size = 1.2) +    # True function
+    geom_line(data = data_avg, aes(x = x, y = y, color = "Average Estimate"), size = 1) +
+    scale_color_manual(name = "Legend",
+                       values = c("Estimated functions" = "grey", "True Function" = "green", "Average Estimate" = "black")) +
+    theme_minimal() +
+    labs(x = "Grid for estimation",
+         y = "Estimated values of g")+
+    ggtitle(paste("MC results, (n_MC =", n_MC, ", n_val =", n_val, ", rhowz =", rhozw, ", rhouv =", rhouv, ", degree =", degree, ", case = ", case, ", J =", J, ")"))
+  
+}
 
 
 #### Courbes CVM et CVM NS ####

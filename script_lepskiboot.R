@@ -1,4 +1,13 @@
 #### Lepski bootstrap ####
+valid_dim_b_splines <- function(J, degree){ #attention modifier pour NS
+  if (J-degree+1 <= 1){
+    return(FALSE)
+  }
+  else{
+    l = log(J - degree +1)/log(2)
+    if (as.integer(l)!=l){
+      return(FALSE)
+    }else{return(TRUE)}}}
 
 calcul_s_J <- function(J, W, Z, Y, degree){
   n = length(W)
@@ -201,7 +210,7 @@ compute_J_max <- function(W, Z, Y, degree, valid_dim){
     return(J)}}
 
 
-lepski_bootstrap <- function(n_boot,valid_dim, x_grid, W, Z, Y, degree){#attention : ici x_grid juste pour calculer les sup norm
+lepski_bootstrap <- function(n_boot, valid_dim, x_grid, W, Z, Y, degree){#attention : ici x_grid juste pour calculer les sup norm
   n = length(Z)
   J_max = compute_J_max(W, Z, Y, degree, valid_dim)
   I_hat = seq(as.integer(0.1*(log(J_max)^2)), as.integer(J_max), by = 1) 
@@ -315,4 +324,46 @@ lepski_bootstrap <- function(n_boot,valid_dim, x_grid, W, Z, Y, degree){#attenti
   
   
   return(J_tilde)
+}
+
+MC_lepski_boot <- function(n_MC, n_boot, x_eval, valid_dim, degree, g_0, case, data_param){
+  list_W <- list()
+  list_Y <- list()
+  list_Z <- list()
+  
+  list_J_opt <- rep(0, n_MC)
+  list_gamma_opt <- list()
+  list_g_hat_on_x <- list()
+  for (n in 1:n_MC){
+    #generate data 
+    simul <- simulate_data_3(data_param, g_0, case)
+    W <- simul$W
+    Y <- simul$Y
+    Z <- simul$Z
+    
+    list_W[[n]] <- W
+    list_Y[[n]] <- Y
+    list_Z[[n]] <- Z
+    
+    #compute the optimal J 
+    x_grid = seq(min(Y), max(Y), length.out = 100)
+    J_opt <-  lepski_bootstrap(n_boot, valid_dim, x_grid, W, Z, Y, degree) #sample(c(4, 6, 10), 1)
+    list_J_opt[n] <- J_opt
+    
+    #compute the gamma_J_opt
+    gamma_hat_J_opt <- estimation_gamma(J_opt, W, Z, Y, degree)
+    list_gamma_opt[[n]] <- gamma_hat_J_opt
+    
+    #compute the function on the grid
+    basis <- create_dyadic_P_splines(x_eval, Z, J_opt, degree)
+    g_hat_on_x <- basis%*%gamma_hat_J_opt
+    list_g_hat_on_x[[n]] <- g_hat_on_x
+  }
+  
+  g_0_on_x <- g_0(x_eval, case)
+  
+  return(list(list_J_opt = list_J_opt, list_gamma = list_gamma_opt, 
+              list_g_hat_on_x = list_g_hat_on_x, g_0_on_x = g_0_on_x,
+              list_W = list_W, list_Y = list_Y, list_Z = list_Z
+  ))
 }

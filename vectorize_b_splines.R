@@ -186,10 +186,11 @@ calcul_M_true_g <- function(g, J, Z, Y, W, case){
   return(M/(n**2))}
 
 calcul_M_g_hat_test_sample <- function(g_hat_on_Z_test, Omega, n_test, Y_test){
-  d_test <- Y_test - g_hat_on_Z_test
-  M <- sum((d_test %*% t(d_test))*Omega)
-  rm(Omega)
-  gc()
+  M = 0
+  for (i in 1:n_test){
+    for (j in 1:n_test){
+      M = M + (Y_test[i] - g_hat_on_Z_test[i])*(Y_test[j] - g_hat_on_Z_test[j])*Omega[i,j]
+  }}
   return(M/(n_test**2))
 }
 

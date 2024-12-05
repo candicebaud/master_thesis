@@ -124,3 +124,46 @@ lepski_chen <- function(c_0,W,Z,Y,degree, valid_dim){
   return(J_opt)
 }
 
+
+MC_lepski <-  function(n_MC, x_eval, degree, valid_dim, g_0, case, data_param){
+  c_0 = 10
+  list_W <- list()
+  list_Y <- list()
+  list_Z <- list()
+  
+  list_J_opt <- rep(0, n_MC)
+  list_gamma_opt <- list()
+  list_g_hat_on_x <- list()
+  
+  for (n in 1:n_MC){
+    #generate data 
+    simul <- simulate_data_3(data_param, g_0, case)
+    W <- simul$W
+    Y <- simul$Y
+    Z <- simul$Z
+    
+    list_W[[n]] <- W
+    list_Y[[n]] <- Y
+    list_Z[[n]] <- Z
+    
+    #compute the optimal J 
+    J_opt <- lepski_chen(c_0, W, Z, Y, degree, valid_dim)
+    list_J_opt[n] <- J_opt
+    
+    #compute the gamma_J_opt
+    gamma_hat_J_opt <- estimation_gamma(J_opt, W, Z, Y, degree)
+    list_gamma_opt[[n]] <- gamma_hat_J_opt
+    
+    #compute the function on the grid
+    basis <- create_dyadic_P_splines(x_eval, Z, J_opt, degree)
+    g_hat_on_x <- basis%*%gamma_hat_J_opt
+    list_g_hat_on_x[[n]] <- g_hat_on_x
+  }
+  
+  g_0_on_x <- g_0(x_eval, case)
+  
+  return(list(list_J_opt = list_J_opt, list_gamma = list_gamma_opt, 
+              list_g_hat_on_x = list_g_hat_on_x, g_0_on_x = g_0_on_x,
+              list_W = list_W, list_Y = list_Y, list_Z = list_Z))
+}
+

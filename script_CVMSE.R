@@ -7,10 +7,11 @@ calcul_M_g_hat <- function(gamma_hat, J, Z, Y, W, degree){ #ok testé
   g_hat_on_Z <- rep(0, n)
   basis <- create_dyadic_P_splines(Z, Z, J, degree)
   g_hat_on_Z <- basis%*%gamma_hat
-  
-  d <- Y - g_hat_on_Z        # Vector of differences
-  M <- sum((d %*% t(d)) * Omega)
-  
+  for (i in 1:n){
+    for (j in 1:n){
+      M = M + (Y[i] - g_hat_on_Z[i])*(Y[j] - g_hat_on_Z[j])*Omega[i,j]
+    }
+  }
   rm(Omega, g_hat_on_Z, d, basis)
   gc()
   return(M/(n**2))}
@@ -21,20 +22,15 @@ calcul_M_true_g <- function(g, J, Z, Y, W, case){
   Omega <- create_W(W)
   g_hat <- sapply(Z, g, case = case)
   
-  d <- Y - g_hat                    
-  M <- sum((d %*% t(d)) * Omega) 
-  rm(Omega, d, M)
-  gc()
+  for (i in 1:n){
+    for (j in 1:n){
+      M = M + (Y[i] - g_hat[i])*(Y[j] - g_hat[j])*Omega[i,j]
+    }}
   
+  rm(Omega, d, M, g_hat)
+  gc()
   return(M/(n**2))}
 
-calcul_M_g_hat_test_sample <- function(g_hat_on_Z_test, Omega, n_test, Y_test){
-  d_test <- Y_test - g_hat_on_Z_test
-  M <- sum((d_test %*% t(d_test))*Omega)
-  rm(Omega)
-  gc()
-  return(M/(n_test**2))
-}
 
 sample_train_test <- function(Z, Y, W, p_train){
   df <- data.frame(Z = Z, Y = Y, W = W)

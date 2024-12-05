@@ -60,13 +60,5 @@ foreach (j=1:nrow(parameter_combinations))%dopar%{
 stopCluster(cl)
 
 
-#perf_MC <- rep(0, 5)
-#perf_MC[1] = compute_perf(opt_CV_M, 'M')
-#perf_MC[2] = compute_perf(opt_CV_M, 'supnorm')
-#perf_MC[3] = compute_perf(opt_CV_M, 'Var')
-#perf_MC[4] = compute_perf(opt_CV_M, 'MSE')
-#perf_MC[5] = compute_perf(opt_CV_M, 'bias')
-#filename = paste ("perf_CV_M_2000", "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
-#save(perf_MC, file=filename)
 
 
