@@ -171,15 +171,6 @@ calcul_ratio <- function(J, J_index, I_hat, x_grid, degree, Z, matrix_gamma, mat
   return(max(res_mat))
 }
 
-valid_dim_b_splines <- function(J, degree){ #attention modifier pour NS
-  if (J-degree+1 <= 1){
-    return(FALSE)
-  }
-  else{
-    l = log(J - degree +1)/log(2)
-    if (as.integer(l)!=l){
-      return(FALSE)
-    }else{return(TRUE)}}}
 
 compute_J_max <- function(W, Z, Y, degree, valid_dim){
   J_init = degree - 1 + 2

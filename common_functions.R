@@ -1,4 +1,4 @@
-#### R script for Cross validation on M ####
+#### Common functions ####
 #### Packages ####
 library(splines)
 library(MASS)
