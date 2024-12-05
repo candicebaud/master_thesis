@@ -909,6 +909,14 @@ perf_and_lost_CVMSE_NS %>% xtable(caption = "CVMSE, natural spline")
 
 
 
+#### Lepskiboot with batches ####
+# j'ai vérifié, on a bien pas des runs différents sur le supercomputer, on pourra donc juste agréger
+
+load("opt_lepski_boot_200_grid50_degree3_rhozw0.9_rhouv0.8_case3_n200_simu1.R")
+plot_mean_true(new_opt_lepski_boot, seq(-2, 2, length.out = 100), 'non', 3, 0.9, 0.8, 3)
+length(new_opt_lepski_boot$list_gamma) #tout a tourné
+
+
 
 #### Performance Lepski ####
 load("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/simu_451418_selectionJ_lepski/opt_lepski_2000_degree3_rhozw0.9_rhouv0.8_case3_n200.R")

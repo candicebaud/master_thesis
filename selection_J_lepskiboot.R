@@ -27,11 +27,8 @@ parameter_combinations <- expand.grid(
 
 degree = 3
 x_evaluation = seq(-2, 2, length.out = 100)
-n_MC = 2000
+n_MC = 200 #ICI ON VA FAIRE DES BATCHS DE 200 ET VOIR 
 
-J_val_CV <- c(4, 6, 10, 18, 34) 
-
-p_train = 0.8
 
 foreach (j=1:nrow(parameter_combinations))%dopar%{
   params <- parameter_combinations[j,]
@@ -42,9 +39,9 @@ foreach (j=1:nrow(parameter_combinations))%dopar%{
   data_param = c(n_val, rhouv, rhozw)
 
   #selection by lepski boot
-  opt_lepski_boot <- MC_lepski_boot(n_MC, 200, x_evaluation, valid_dim, degree, g_sim_3, case, data_param)
+  opt_lepski_boot <- MC_lepski_boot(n_MC, 50, x_evaluation, valid_dim, degree, g_sim_3, case, data_param)
   new_opt_lepski_boot <- compute_new_MC_selection(opt_lepski_boot)
-  filename = paste ("opt_lepski_boot_2000", "_grid", 200, "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
+  filename = paste ("opt_lepski_boot_200", "_grid", 50, "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, "_simu2.R" ,sep = "")
   save(new_opt_lepski_boot,file=filename)
   perf_lepski_boot <- rep(0, 5)
   perf_lepski_boot[1] = compute_perf(new_opt_lepski_boot, 'M')
@@ -52,7 +49,7 @@ foreach (j=1:nrow(parameter_combinations))%dopar%{
   perf_lepski_boot[3] = compute_perf(new_opt_lepski_boot, 'Var')
   perf_lepski_boot[4] = compute_perf(new_opt_lepski_boot, 'MSE')
   perf_lepski_boot[5] = compute_perf(new_opt_lepski_boot, 'bias')
-  filename_perf <- paste ("perf2000_lepski_boot", "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
+  filename_perf <- paste ("perf2000_lepski_boot", "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, "_simu2.R" ,sep = "")
   save(perf_lepski_boot,file=filename_perf)
   
 }
@@ -60,13 +57,7 @@ foreach (j=1:nrow(parameter_combinations))%dopar%{
 stopCluster(cl)
 
 
-#perf_MC <- rep(0, 5)
-#perf_MC[1] = compute_perf(opt_CV_M, 'M')
-#perf_MC[2] = compute_perf(opt_CV_M, 'supnorm')
-#perf_MC[3] = compute_perf(opt_CV_M, 'Var')
-#perf_MC[4] = compute_perf(opt_CV_M, 'MSE')
-#perf_MC[5] = compute_perf(opt_CV_M, 'bias')
-#filename = paste ("perf_CV_M_2000", "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
-#save(perf_MC, file=filename)
+
+#pour les performances : on fera ensuite la moyenne des performances sur les différents batchs
 
 
