@@ -18,6 +18,7 @@ library(ggplot2)
 plot_mean_true <- function(res_MC, x_evaluation,J, degree, rhozw, rhouv, case){
   n_MC = length(res_MC$list_gamma)
   n_val = length(res_MC$list_g_hat_on_x[[1]])
+  n_data = length(res_MC$list_Z[[1]])
   
   #compute the avg
   avg <- rep(0, n_val)
@@ -36,7 +37,7 @@ plot_mean_true <- function(res_MC, x_evaluation,J, degree, rhozw, rhouv, case){
       name = "Functions", # Change this to your desired legend title
       values = c("True Function" = "blue", "Estimate by MC" = "red") # Customize colors
     ) +
-    ggtitle(paste("True vs avg, (n_MC =", n_MC, ", n_val =", n_val, ", rhowz =", rhozw, ", rhouv =", rhouv, ", degree =", degree, ", case = ", case, ", J =", J, ")"))
+    ggtitle(paste("True vs avg, (n_MC =", n_MC, ", n_data =", n_data, ", rhowz =", rhozw, ", rhouv =", rhouv, ", degree =", degree, ", case = ", case, ", J =", J, ")"))
   return(graph)
 }
 
@@ -60,6 +61,8 @@ plot_allcurves_true <- function(res_MC, x_evaluation,J, degree, rhozw, rhouv, ca
       avg[x] <- avg[x] + res_MC$list_g_hat_on_x[[n]][x]/n_MC
     }}
   
+  n_data = length(res_MC$list_Z[[1]])
+  
   data_avg <- data.frame(x = x_evaluation, y = avg)
   
   ggplot() +
@@ -71,7 +74,7 @@ plot_allcurves_true <- function(res_MC, x_evaluation,J, degree, rhozw, rhouv, ca
     theme_minimal() +
     labs(x = "Grid for estimation",
          y = "Estimated values of g")+
-    ggtitle(paste("MC results, (n_MC =", n_MC, ", n_val =", n_val, ", rhowz =", rhozw, ", rhouv =", rhouv, ", degree =", degree, ", case = ", case, ", J =", J, ")"))
+    ggtitle(paste("MC results, (n_MC =", n_MC, ", n_data =", n_data, ", rhowz =", rhozw, ", rhouv =", rhouv, ", degree =", degree, ", case = ", case, ", J =", J, ")"))
   
 }
 
@@ -129,6 +132,21 @@ length(new_opt_CV_M$list_gamma)
 
 load("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/simu_450196_running_selectionJ/selection_timeout/perf2000_lepski_boot_degree3_rhozw0.7_rhouv0.8_case3_n200.R")
 
+
+
+#### Lepski boot ####
+setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/2")
+
+load("simu_414886_lepskiboot/opt_lepski_boot_2000_grid50_degree3_rhozw0.9_rhouv0.8_case3_n2500.R")
+plot_mean_true(new_opt_lepski_boot, seq(-2, 2, length.out = 100), mean(new_opt_lepski_boot$list_J_opt), 3, 0.7, 0.8, 2)
+plot_allcurves_true(new_opt_lepski_boot, seq(-2, 2, length.out = 100),mean(new_opt_lepski_boot$list_J_opt), 3, 0.7, 0.8, 2)
+
+#### Lepski ####
+setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/2")
+
+load("simu_414887_lepski/opt_lepski_2000_degree3_rhozw0.9_rhouv0.8_case3_n200.R")
+plot_mean_true(new_opt_lepski, seq(-2, 2, length.out = 100), mean(new_opt_lepski$list_J_opt), 3, 0.7, 0.8, 2)
+plot_allcurves_true(new_opt_lepski, seq(-2, 2, length.out = 100),mean(new_opt_lepski), 3, 0.7, 0.8, 2)
 
 
 

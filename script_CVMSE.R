@@ -1,11 +1,11 @@
 #### Selection of J by cross-validation on the MSE ####
-calcul_M_g_hat <- function(gamma_hat, J, Z, Y, W, degree){ #ok testé
+calcul_M_g_hat <- function(gamma_hat, J, Z, Y, W, degree, create_P){ #ok testé
   Omega <- create_W(W)
   a = min(Z)
   b = max(Z)
   n = length(Z)
   g_hat_on_Z <- rep(0, n)
-  basis <- create_dyadic_P_splines(Z, Z, J, degree)
+  basis <- create_P(Z, Z, J, degree)
   g_hat_on_Z <- basis%*%gamma_hat
   for (i in 1:n){
     for (j in 1:n){
@@ -49,7 +49,7 @@ sample_train_test <- function(Z, Y, W, p_train){
   ))
 }
 
-optimization_CV_MSE <- function(Z, W, Y, vect_J_to_test, p_train, degree, x_grid){
+optimization_CV_MSE <- function(Z, W, Y, vect_J_to_test, p_train, degree, x_grid, create_P){
   gamma_hat_list <- vector("list", length(vect_J_to_test))
   a = min(Z)
   b = max(Z)
@@ -70,12 +70,12 @@ optimization_CV_MSE <- function(Z, W, Y, vect_J_to_test, p_train, degree, x_grid
   for (j_index in 1:length(vect_J_to_test)){
     J = vect_J_to_test[j_index]
     #compute gamma_hat_train
-    gamma_hat <- estimation_gamma(J,W_train,Z_train,Y_train, degree)
+    gamma_hat <- estimation_gamma(J,W_train,Z_train,Y_train, degree, create_P)
     gamma_hat_list[[j_index]] <- gamma_hat
     
     # compute the prediction of g_hat_train on the test set 
     n_val <- length(Z_validation)
-    basis <- create_dyadic_P_splines(Z_validation, Z_train, J, degree)
+    basis <- create_P(Z_validation, Z_train, J, degree)
     g_hat_on_Z_val <-  basis%*%gamma_hat
     
     # compute MSE and store it
@@ -85,14 +85,15 @@ optimization_CV_MSE <- function(Z, W, Y, vect_J_to_test, p_train, degree, x_grid
   
   # return J corresponding to the smallest MSE
   J_opt = vect_J_to_test[which.min(MSE_values)]
-  gamma_hat <- estimation_gamma(J_opt,W,Z,Y,degree)
+  #gamma_hat <- estimation_gamma(J_opt,W,Z,Y,degree)
   
-  basis <- create_dyadic_P_splines(x_grid, Z, J_opt, degree)
-  g_hat_on_x_opt <- basis%*%gamma_hat
+  #basis <- create_dyadic_P_splines(x_grid, Z, J_opt, degree)
+  #g_hat_on_x_opt <- basis%*%gamma_hat
   
-  rm(basis, Z_train, Z_validation, Y_train, Y_validation, W_train, W_validation)
+  rm(Z_train, Z_validation, Y_train, Y_validation, W_train, W_validation, 
+     gamma_hat_list, sampled_data, MSE_values)
   gc()
   
-  return(list(J_opt = J_opt, gamma_hat_j_opt = gamma_hat, g_hat_on_x_opt = g_hat_on_x_opt, gamma_hat_list = gamma_hat_list, MSE_values = MSE_values))
-  
+  #return(list(J_opt = J_opt, gamma_hat_j_opt = gamma_hat, g_hat_on_x_opt = g_hat_on_x_opt, gamma_hat_list = gamma_hat_list, MSE_values = MSE_values))
+  return(J_opt)
 }

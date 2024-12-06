@@ -1,6 +1,6 @@
 #### Source code ####
-setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/github/master_thesis")
-source("code_b_splines_monte_carlo.R")
+#setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/github/master_thesis")
+#source("code_b_splines_monte_carlo.R")
 library(splines)
 library(MASS)
 library(caret)
@@ -513,13 +513,10 @@ for (j in 1:nrow(parameter_combinations)){
   case <- as.numeric(params$Case)
   n_val <- as.numeric(params$N)
   data_param = c(n_val, rhouv, rhozw)
-  for (i in 1:length(J_val)){
-    J <- J_val[i]
-    filename_perf <- paste ("perf2000_CV_M", "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
-    load(filename_perf)
-    perf_CV_M <- c(filename_perf, perf_CV_M)
-    assign(filename_perf, perf_CV_M)
-  }
+  filename_perf <- paste ("perf2000_CV_M", "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
+  load(filename_perf)
+  perf_CV_M <- c(filename_perf, perf_CV_M)
+  assign(filename_perf, perf_CV_M)
 }
 
 #create a df with aggregated performances
@@ -589,13 +586,11 @@ for (j in 1:nrow(parameter_combinations)){
   case <- as.numeric(params$Case)
   n_val <- as.numeric(params$N)
   data_param = c(n_val, rhouv, rhozw)
-  for (i in 1:length(J_val)){
-    J <- J_val[i]
-    filename_perf <- paste ("perf2000_CV_MSE", "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
-    load(filename_perf)
-    perf_CV_MSE <- c(filename_perf, perf_CV_MSE)
-    assign(filename_perf, perf_CV_MSE)
-  }
+  filename_perf <- paste ("perf2000_CV_MSE", "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
+  load(filename_perf)
+  perf_CV_MSE <- c(filename_perf, perf_CV_MSE)
+  assign(filename_perf, perf_CV_MSE)
+
 }
 
 #create a df with aggregated performances
@@ -658,7 +653,6 @@ parameter_combinations <- expand.grid(
   Rhouv_Rhozw = seq_along(Rhouv_Rhozw) # Use indices for combinations
 )
 
-J_val <- c(4, 8, 16, 32)
 
 for (j in 1:nrow(parameter_combinations)){
   params <- parameter_combinations[j,]
@@ -667,13 +661,10 @@ for (j in 1:nrow(parameter_combinations)){
   case <- as.numeric(params$Case)
   n_val <- as.numeric(params$N)
   data_param = c(n_val, rhouv, rhozw)
-  for (i in 1:length(J_val)){
-    J <- J_val[i]
-    filename_perf <- paste ("NS_perf2000_CV_M", "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
-    load(filename_perf)
-    perf_CV_M <- c(filename_perf, perf_CV_M)
-    assign(filename_perf, perf_CV_M)
-  }
+  filename_perf <- paste ("NS_perf2000_CV_M", "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
+  load(filename_perf)
+  perf_CV_M <- c(filename_perf, perf_CV_M)
+  assign(filename_perf, perf_CV_M)
 }
 
 #create a df with aggregated performances
@@ -736,7 +727,6 @@ parameter_combinations <- expand.grid(
   Rhouv_Rhozw = seq_along(Rhouv_Rhozw) # Use indices for combinations
 )
 
-J_val <- c(4, 8, 16, 32) 
 
 for (j in 1:nrow(parameter_combinations)){
   params <- parameter_combinations[j,]
@@ -745,13 +735,10 @@ for (j in 1:nrow(parameter_combinations)){
   case <- as.numeric(params$Case)
   n_val <- as.numeric(params$N)
   data_param = c(n_val, rhouv, rhozw)
-  for (i in 1:length(J_val)){
-    J <- J_val[i]
-    filename_perf <- paste("NS_perf2000_CV_MSE", "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
-    load(filename_perf)
-    perf_CV_MSE <- c(filename_perf, perf_CV_MSE)
-    assign(filename_perf, perf_CV_MSE)
-  }
+  filename_perf <- paste("NS_perf2000_CV_MSE", "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
+  load(filename_perf)
+  perf_CV_MSE <- c(filename_perf, perf_CV_MSE)
+  assign(filename_perf, perf_CV_MSE)
 }
 
 #create a df with aggregated performances
@@ -909,29 +896,121 @@ perf_and_lost_CVMSE_NS %>% xtable(caption = "CVMSE, natural spline")
 
 
 
-#### Lepskiboot with batches ####
-# j'ai vérifié, on a bien pas des runs différents sur le supercomputer, on pourra donc juste agréger
 
-load("opt_lepski_boot_200_grid50_degree3_rhozw0.9_rhouv0.8_case3_n200_simu1.R")
-plot_mean_true(new_opt_lepski_boot, seq(-2, 2, length.out = 100), 'non', 3, 0.9, 0.8, 3)
-length(new_opt_lepski_boot$list_gamma) #tout a tourné
+#### Résultats partiels lepski boot ####
+setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/2/simu_414886_lepskiboot")
+degree = 3
+n_MC = 2000
+
+N_values <- c(200, 400, 1000, 2500)
+Cases <- c(2, 3)
+Rhouv_Rhozw <- list(c(0.5, 0.9), c(0.8, 0.9), c(0.8, 0.7))
+
+parameter_combinations <- expand.grid(
+  N = N_values,
+  Case = Cases,
+  Rhouv_Rhozw = seq_along(Rhouv_Rhozw) # Use indices for combinations
+)
 
 
 
-#### Performance Lepski ####
-load("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/simu_451418_selectionJ_lepski/opt_lepski_2000_degree3_rhozw0.9_rhouv0.8_case3_n200.R")
+for (j in 1:nrow(parameter_combinations)){
+  params <- parameter_combinations[j,]
+  rhouv <- as.numeric(Rhouv_Rhozw[[params$Rhouv_Rhozw]][1])
+  rhozw <- as.numeric(Rhouv_Rhozw[[params$Rhouv_Rhozw]][2])
+  case <- as.numeric(params$Case)
+  n_val <- as.numeric(params$N)
+  data_param = c(n_val, rhouv, rhozw)
+  filename_perf <- paste ("perf2000_lepski_boot", "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
+  if (file.exists(filename_perf)){
+  load(filename_perf)
+  perf_lepski_boot <- c(filename_perf, perf_lepski_boot)
+  assign(filename_perf, perf_lepski_boot)}
+}
 
-unique(new_opt_lepski$list_J_opt)
-length(new_opt_lepski$list_gamma)
-plot_mean_true(new_opt_lepski, seq(-2, 2, length.out = 100), 'non', 3, 0.7, 0.8, 2)
-plot_allcurves_true(new_opt_lepski, seq(-2, 2, length.out = 100), 'none', 3, 0.7, 0.8, 2)
+#create a df with aggregated performances
+vector_names <- ls(pattern = "^perf2000_lepski_boot")
+vector_list <- mget(vector_names)
+df <- as.data.frame(do.call(rbind, vector_list))
+
+colnames(df) <- c("Name", "M", "supnorm", "Var", "MSE", "bias")
+df <- df %>%
+  mutate(
+    degree = str_extract(Name, "(?<=_degree)\\d+"),
+    rhozw = str_extract(Name, "(?<=_rhozw)\\d*\\.?\\d+"),
+    rhouv = str_extract(Name, "(?<=_rhouv)\\d*\\.?\\d+"),
+    case = str_extract(Name, "(?<=_case)\\d+"),
+    n_val = str_extract(Name, "(?<=_n)\\d+")
+  )
 
 
-load("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/simu_451418_selectionJ_lepski/opt_lepski_2000_degree3_rhozw0.7_rhouv0.8_case3_n200.R")
-length(new_opt_lepski$list_gamma)
-plot_mean_true(new_opt_lepski, seq(-2, 2, length.out = 100), 'non', 3, 0.7, 0.8, 2)
-plot_allcurves_true(new_opt_lepski, seq(-2, 2, length.out = 100), 'none', 3, 0.7, 0.8, 2)
+df <- df %>%
+  rownames_to_column(var = "Temp") %>%   # Create a temporary column for row names
+  select(-Temp)
 
-hist(new_opt_lepski$list_J_opt)
+df <- df%>%select(-1)
+df <- df%>%select(n_val, case, rhozw, rhouv, degree, M, supnorm, Var, MSE, bias)
+df <- data.frame(lapply(df, as.numeric))
+df <- df[order(df$n_val, df$case), ]
 
-unique(new_opt_lepski$list_J_opt)
+df <- data.frame(lapply(df, as.character))
+df <- subset(df, select=-c(degree))
+
+#### Résultats partiels lepski ####
+setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/2/simu_414887_lepski")
+degree = 3
+n_MC = 2000
+
+N_values <- c(200, 400, 1000, 2500)
+Cases <- c(2, 3)
+Rhouv_Rhozw <- list(c(0.5, 0.9), c(0.8, 0.9), c(0.8, 0.7))
+
+parameter_combinations <- expand.grid(
+  N = N_values,
+  Case = Cases,
+  Rhouv_Rhozw = seq_along(Rhouv_Rhozw) # Use indices for combinations
+)
+
+
+
+for (j in 1:nrow(parameter_combinations)){
+  params <- parameter_combinations[j,]
+  rhouv <- as.numeric(Rhouv_Rhozw[[params$Rhouv_Rhozw]][1])
+  rhozw <- as.numeric(Rhouv_Rhozw[[params$Rhouv_Rhozw]][2])
+  case <- as.numeric(params$Case)
+  n_val <- as.numeric(params$N)
+  data_param = c(n_val, rhouv, rhozw)
+  filename_perf <- paste ("perf2000_lepski", "_degree", degree, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
+  if (file.exists(filename_perf)){
+    load(filename_perf)
+    perf_lepski <- c(filename_perf, perf_lepski)
+    assign(filename_perf, perf_lepski)}
+}
+
+#create a df with aggregated performances
+vector_names <- ls(pattern = "^perf2000_lepski")
+vector_list <- mget(vector_names)
+df <- as.data.frame(do.call(rbind, vector_list))
+
+colnames(df) <- c("Name", "M", "supnorm", "Var", "MSE", "bias")
+df <- df %>%
+  mutate(
+    degree = str_extract(Name, "(?<=_degree)\\d+"),
+    rhozw = str_extract(Name, "(?<=_rhozw)\\d*\\.?\\d+"),
+    rhouv = str_extract(Name, "(?<=_rhouv)\\d*\\.?\\d+"),
+    case = str_extract(Name, "(?<=_case)\\d+"),
+    n_val = str_extract(Name, "(?<=_n)\\d+")
+  )
+
+
+df <- df %>%
+  rownames_to_column(var = "Temp") %>%   # Create a temporary column for row names
+  select(-Temp)
+
+df <- df%>%select(-1)
+df <- df%>%select(n_val, case, rhozw, rhouv, degree, M, supnorm, Var, MSE, bias)
+df <- data.frame(lapply(df, as.numeric))
+df <- df[order(df$n_val, df$case), ]
+
+df <- data.frame(lapply(df, as.character))
+df <- subset(df, select=-c(degree))
