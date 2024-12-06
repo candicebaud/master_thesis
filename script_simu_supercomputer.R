@@ -1,5 +1,5 @@
 #### Import all the codes ####
-#setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/github/master_thesis")
+setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/github/master_thesis")
 source("source_file_common_all.R")
 source("script_CVM.R")
 source("script_CVMSE.R")
