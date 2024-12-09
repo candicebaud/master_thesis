@@ -71,8 +71,11 @@ create_dyadic_P_splines_bs <- function(x, Z, J, degree){
     b = max(Z)
     n_pts = 2^{n_dyadic} +1 
     knots = create_dyadic_interval(n_dyadic, a, b)[2:2^{n_dyadic}]
-    return(bs(x, knots = knots, degree = degree, 
-              intercept = TRUE)) 
+    basis <- bs(x, knots = knots, degree = degree, 
+                intercept = TRUE)
+    rm(knots, a, b, n_pts)
+    gc()
+    return(basis) 
   }}
 
 verify_P_is_working <- function(x, knots){
@@ -127,14 +130,14 @@ compute_M_bootstrap <- function(J, W, Z, Y, degree, create_P){
     rm(M_boot_step_invert)
   }
   
-  rm(Omega, P)
+  rm(Omega,P)
   gc()
   return(M_boot)
 }
 
 
 valid_dim_b_splines <- function(J, degree){ #attention modifier pour NS
-  if (J-degree+1 <= 1){
+  if (J-degree <= 1){
     return(FALSE)
   }
   else{
@@ -144,7 +147,7 @@ valid_dim_b_splines <- function(J, degree){ #attention modifier pour NS
     }else{return(TRUE)}}}
 
 valid_dim_ns <- function(J, degree){
-  if (J-degree+1 <= 1){
+  if (J < degree){
     return(FALSE)
   }
   else{
@@ -391,7 +394,7 @@ compute_J_max <- function(W, Z, Y, degree, bs_bool){
         J = J + 1}
       
       # Calculate s_hat_J and update ratios
-      s_hat_J = calcul_s_J(J, W, Z, Y, degree,create_P)
+      s_hat_J = calcul_s_J(J, W, Z, Y, degree, create_P)
       prev_ratio = new_ratio
       new_ratio = s_hat_J / sqrt(n)
     }

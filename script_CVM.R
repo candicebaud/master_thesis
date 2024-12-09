@@ -49,23 +49,18 @@ sample_train_test <- function(Z, Y, W, p_train){
   ))
 }
 
-optimization_CV_M <- function(Z, W, Y, vect_J_to_test, p_train, degree, x_grid, create_P){
+optimization_CV_M <- function(Z_train, W_train, Y_train, Z_validation, W_validation, Y_validation,
+                              vect_J_to_test, p_train, degree, x_grid, create_P){
   gamma_hat_list <- vector("list", length(vect_J_to_test))
-  a = min(Z)
-  b = max(Z)
+  #a = min(Z)
+  #b = max(Z)
   M_values <- numeric(length(vect_J_to_test))
-  n = length(Z)
+  #n = length(Z)
   
   # split the data in training and test set
-  sampled_data <- sample_train_test(Z, Y, W, p_train)
-  Z_train <- sampled_data$Z_train
-  Y_train <- sampled_data$Y_train
-  W_train <- sampled_data$W_train
-  Z_validation <- sampled_data$Z_validation
-  Y_validation <- sampled_data$Y_validation
-  W_validation <- sampled_data$W_validation
   n_train <- length(Z_train)
   
+  Omega_val <- create_W(W_validation)
   # compute gamma_hat_train and g_hat_train for the training set
   for (j_index in 1:length(vect_J_to_test)){
     J = vect_J_to_test[j_index]
@@ -79,7 +74,6 @@ optimization_CV_M <- function(Z, W, Y, vect_J_to_test, p_train, degree, x_grid, 
     g_hat_on_Z_val <-  basis%*%gamma_hat
     
     # compute M and store it 
-    Omega_val <- create_W(W_validation)
     M_values[j_index] <- calcul_M_g_hat_test_sample(g_hat_on_Z_val, Omega_val, n_val, Y_validation)
   }
   
@@ -87,15 +81,8 @@ optimization_CV_M <- function(Z, W, Y, vect_J_to_test, p_train, degree, x_grid, 
   J_opt = vect_J_to_test[which.min(M_values)] #on renvoie que J_opt pcq on va faire un algo qui calcule d'abord les g_J pour tous les J et une fois qu'on a J_opt on sélectionne les résultats précalculés sur la même data
   
   rm(Z_train, Z_validation, Y_train, Y_validation, W_train, W_validation, 
-     gamma_hat_list, sampled_data, M_values)
+     gamma_hat_list, M_values, Omega)
   gc()
-  
-  #evaluate hat_g_hat_J on a grid x
-  #gamma_hat <- estimation_gamma(J_opt,W,Z,Y,degree)
-  
-  #g_hat_on_x_opt = rep(0, length(x_grid))
-  #basis <- create_P(x_grid, Z, J_opt, degree)
-  #g_hat_on_x_opt <- basis%*%gamma_hat
   
   #return(list(J_opt = J_opt, gamma_hat_j_opt = gamma_hat, g_hat_on_x_opt = g_hat_on_x_opt, gamma_hat_list = gamma_hat_list, M_values = M_values))
   return(J_opt)
