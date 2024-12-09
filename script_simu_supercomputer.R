@@ -1,5 +1,5 @@
 #### Import all the codes ####
-setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/github/master_thesis")
+#setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/github/master_thesis")
 source("source_file_common_all.R")
 source("script_CVM.R")
 source("script_CVMSE.R")
@@ -272,18 +272,81 @@ MC_j_opt <- function(n_MC, data_param, case, J_CV_bs, J_CV_ns, p_train, x_evalua
 
 
 
-J_bs_ <- c(5, 7, 11, 19, 35)
-J_ns_ <- c(3, 5, 9, 17, 33)
-p = 0.5
-x_eval = seq(-2, 2, length.out = 100)
-deg = 3
-n_boot = 10
-simul <- simulate_data_3(c(200, 0.5, 0.9), g_sim_3, 2)
+#J_bs_ <- c(5, 7, 11, 19, 35)
+#J_ns_ <- c(3, 5, 9, 17, 33)
+#p = 0.5
+#x_eval = seq(-2, 2, length.out = 100)
+#deg = 3
+#n_boot = 10
+#simul <- simulate_data_3(c(200, 0.5, 0.9), g_sim_3, 2)
 
-test <- J_opt_data_fixed(simul, J_bs_, J_ns_, p, x_eval, deg, n_boot)
+#test <- J_opt_data_fixed(simul, J_bs_, J_ns_, p, x_eval, deg, n_boot)
 
 
-test <- MC_j_opt(1, c(200, 0.5, 0.9), 2, J_bs_, J_ns_, p, x_eval,
-         deg, n_boot)
+#test <- MC_j_opt(2, c(200, 0.5, 0.9), 2, J_bs_, J_ns_, p, x_eval,deg, n_boot)
+
+#### parallelized MC ####
+MC_j_opt_parallelized <- function(n_MC, data_param, case, J_CV_bs, J_CV_ns, p_train, x_evaluation,
+                     degree, n_boot_lepski) {
+  
+  n_eval = length(x_evaluation)
+  
+  # Initialize the lists to store the results of each MC run
+  list_J_opt_CV_M_bs <- numeric(n_MC)
+  list_J_opt_CV_M_ns <- numeric(n_MC)
+  list_J_opt_CVMSE_bs <- numeric(n_MC)
+  list_J_opt_CVMSE_ns <- numeric(n_MC)
+  list_J_opt_lepski_bs <- numeric(n_MC)
+  list_J_opt_lepski_ns <- numeric(n_MC)
+  list_J_opt_lepskiboot_bs <- numeric(n_MC)
+  list_J_opt_lepskiboot_ns <- numeric(n_MC)
+  
+  list_all_gamma_bs <- vector("list", n_MC)
+  list_all_gamma_ns <- vector("list", n_MC)
+  
+  list_g_hat_J_bs_all <- vector("list", n_MC)
+  list_g_hat_J_ns_all <- vector("list", n_MC)
+  
+  # Parallelize the MC simulations
+  foreach(n = 1:n_MC, .combine = 'c') %dopar% {
+    # Simulate data for each iteration
+    simul <- simulate_data_3(data_param, g_sim_3, case)
+    
+    # Perform the J-optimality computation
+    res <- J_opt_data_fixed(simul, J_CV_bs, J_CV_ns, p_train, x_evaluation,
+                            degree, n_boot_lepski)
+    
+    # Store the results from the J-optimality computations
+    list_J_opt_CV_M_bs[n] <- res$J_opt_CV_M_bs
+    list_J_opt_CV_M_ns[n] <- res$J_opt_CV_M_ns
+    list_J_opt_CVMSE_bs[n] <- res$J_opt_CVMSE_bs
+    list_J_opt_CVMSE_ns[n] <- res$J_opt_CVMSE_ns
+    list_J_opt_lepski_bs[n] <- res$J_opt_lepski_bs
+    list_J_opt_lepski_ns[n] <- res$J_opt_lepski_ns
+    list_J_opt_lepskiboot_bs[n] <- res$J_opt_lepskiboot_bs
+    list_J_opt_lepskiboot_ns[n] <- res$J_opt_lepskiboot_ns
+    
+    list_all_gamma_bs[[n]] <- res$list_gamma_bs
+    list_all_gamma_ns[[n]] <- res$list_gamma_ns
+    
+    list_g_hat_J_bs_all[[n]] <- res$list_g_hat_J_bs
+    list_g_hat_J_ns_all[[n]] <- res$list_g_hat_J_ns
+  }
+  
+  # Return the collected results
+  return(list(
+    list_J_opt_CV_M_bs = list_J_opt_CV_M_bs,
+    list_J_opt_CV_M_ns = list_J_opt_CV_M_ns,
+    list_J_opt_CVMSE_bs = list_J_opt_CVMSE_bs,
+    list_J_opt_CVMSE_ns = list_J_opt_CVMSE_ns,
+    list_J_opt_lepski_bs = list_J_opt_lepski_bs,
+    list_J_opt_lepski_ns = list_J_opt_lepski_ns,
+    list_J_opt_lepskiboot_bs = list_J_opt_lepskiboot_bs,
+    list_J_opt_lepskiboot_ns = list_J_opt_lepskiboot_ns,
+    list_g_hat_J_bs_all = list_g_hat_J_bs_all,
+    list_g_hat_J_ns_all = list_g_hat_J_ns_all
+  ))
+}
+
 
 
