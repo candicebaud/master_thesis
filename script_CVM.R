@@ -81,7 +81,7 @@ optimization_CV_M <- function(Z_train, W_train, Y_train, Z_validation, W_validat
   J_opt = vect_J_to_test[which.min(M_values)] #on renvoie que J_opt pcq on va faire un algo qui calcule d'abord les g_J pour tous les J et une fois qu'on a J_opt on sélectionne les résultats précalculés sur la même data
   
   rm(Z_train, Z_validation, Y_train, Y_validation, W_train, W_validation, 
-     gamma_hat_list, M_values, Omega)
+     gamma_hat_list, M_values)
   gc()
   
   #return(list(J_opt = J_opt, gamma_hat_j_opt = gamma_hat, g_hat_on_x_opt = g_hat_on_x_opt, gamma_hat_list = gamma_hat_list, M_values = M_values))

@@ -63,6 +63,7 @@ create_dyadic_interval <- function(nb_pts, a, b) {
 
 create_dyadic_P_splines_bs <- function(x, Z, J, degree){
   n_dyadic = log(J - degree)/log(2)
+  #print(c("create_dyadic_P_splines_bs", n_dyadic))
   if (as.integer(n_dyadic)!=n_dyadic){
     print("Error, dimension is not valid")
   }
@@ -90,6 +91,7 @@ verify_P_is_working <- function(x, knots){
 
 create_dyadic_P_splines_ns <- function(x, Z, J, degree){
   n_dyadic = log(J-1)/log(2)
+  #print(c("create_dyadic_P_splines_ns", n_dyadic))
   if (as.integer(n_dyadic)!=n_dyadic){
     print("Error, dimension is not valid")
   }

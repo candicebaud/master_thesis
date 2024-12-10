@@ -6,6 +6,9 @@ source("script_CVMSE.R")
 source("script_lepskichen.R")
 source("script_lepskiboot.R")
 
+
+set.seed(47820)
+
 #### Fonction ####
 J_opt_data_fixed <- function(simul_data, J_CV_bs, J_CV_ns, p_train, x_evaluation, degree, n_boot_lepski){
   W <- simul_data$W
@@ -63,7 +66,7 @@ J_opt_data_fixed <- function(simul_data, J_CV_bs, J_CV_ns, p_train, x_evaluation
   Y_validation <- sampled_data$Y_validation
   W_validation <- sampled_data$W_validation
   
-  if (length(new_J_CV_bs)>0){
+  if (length(new_J_CV_bs)>1){
     J_opt_CV_M_bs <- optimization_CV_M(Z_train, W_train, Y_train, Z_validation, W_validation, Y_validation,
                                        new_J_CV_bs, p_train, 
                                        degree, x_evaluation, create_dyadic_P_splines_bs)
@@ -75,6 +78,10 @@ J_opt_data_fixed <- function(simul_data, J_CV_bs, J_CV_ns, p_train, x_evaluation
                                           degree, x_evaluation, create_dyadic_P_splines_bs)
     #j_index_ <- which(J_CV_bs == J_opt_CVMSE_bs)
     #g_hat_J_bs_CVMSE = list_g_hat_J_bs[[j_index_]]
+  }
+  else if(length(new_J_CV_bs)==1){ #si on a qu'un seul choix
+    J_opt_CV_M_bs <- new_J_CV_bs
+    J_opt_CVMSE_bs <- new_J_CV_bs
     }
   else{
     J_opt_CV_M_bs <- 0
@@ -83,8 +90,7 @@ J_opt_data_fixed <- function(simul_data, J_CV_bs, J_CV_ns, p_train, x_evaluation
     #g_hat_J_bs_CVMSE <- rep(0, length(x_evaluation))
   }
   
-  
-  if (length(new_J_CV_ns)>0){
+  if (length(new_J_CV_ns)>1){
     J_opt_CV_M_ns <- optimization_CV_M(Z_train, W_train, Y_train, Z_validation, W_validation, Y_validation,
                                        new_J_CV_ns, p_train, 
                                        degree, x_evaluation, create_dyadic_P_splines_ns)
@@ -96,6 +102,10 @@ J_opt_data_fixed <- function(simul_data, J_CV_bs, J_CV_ns, p_train, x_evaluation
                                           degree, x_evaluation, create_dyadic_P_splines_ns)
     #j_index_ <- which(J_CV_ns == J_opt_CVMSE_ns)
     #g_hat_J_ns_CVMSE = list_g_hat_J_ns[[j_index_]]}
+  }
+  else if (length(new_J_CV_ns)==1){
+    J_opt_CV_M_ns <- new_J_CV_ns
+    J_opt_CVMSE_ns <- new_J_CV_ns
   }
   else{
     J_opt_CV_M_ns <- 0
@@ -122,7 +132,7 @@ J_opt_data_fixed <- function(simul_data, J_CV_bs, J_CV_ns, p_train, x_evaluation
   I_hat_bs_new = I_hat_bs[-zero_indices_bs]
   I_hat_ns_new = I_hat_ns[-zero_indices_ns]
   
-  if (length(I_hat_bs) > 0){
+  if (length(I_hat_bs_new) > 1){
     c_0 <- 10
     J_opt_lepski_bs <- lepski_chen(I_hat_bs_new, c_0, m_m, list_g_hat_J_bs, W, Z, Y, degree, 
                                    valid_dim_b_splines, create_dyadic_P_splines_bs)
@@ -136,6 +146,10 @@ J_opt_data_fixed <- function(simul_data, J_CV_bs, J_CV_ns, p_train, x_evaluation
     #j_index_ <- which(J_CV_bs == J_opt_lepskiboot_bs)
     #g_hat_J_bs_lepski_boot = list_g_hat_J_bs[[j_index_]]}
   }
+  else if (length(I_hat_bs_new)==1){
+    J_opt_lepski_bs <- I_hat_ns_new
+    J_opt_lepskiboot_bs <- I_hat_ns_new
+  }
   else{
     J_opt_lepski_bs <- 0
     #g_hat_J_bs_lepski <- rep(0, length(x_evaluation))
@@ -143,8 +157,7 @@ J_opt_data_fixed <- function(simul_data, J_CV_bs, J_CV_ns, p_train, x_evaluation
     #g_hat_J_bs_lepski_boot <- rep(0, length(x_evaluation))
   }
   
-  
-  if (length(I_hat_ns)>0){
+  if (length(I_hat_ns_new)>1){
     J_opt_lepski_ns <- lepski_chen(I_hat_ns_new, c_0, m_m, list_g_hat_J_ns, W, Z, Y, degree, 
                                    valid_dim_ns, create_dyadic_P_splines_ns)
     #j_index_ <- which(J_CV_ns == J_opt_lepski_ns)
@@ -153,9 +166,12 @@ J_opt_data_fixed <- function(simul_data, J_CV_bs, J_CV_ns, p_train, x_evaluation
     J_opt_lepskiboot_ns <- lepski_bootstrap(I_hat_ns_new, n_boot_lepski, list_gamma_ns, list_M_boot_ns,
                                             list_g_hat_J_ns, valid_dim_ns, x_evaluation, 
                                             W, Z, Y, degree, create_dyadic_P_splines_ns)
-
     #j_index_ <- which(J_CV_ns == J_opt_lepskiboot_ns)
     #g_hat_J_ns_lepski_boot = list_g_hat_J_ns[[j_index_]]}
+  }
+  else if (length(I_hat_ns_new)==1){
+    J_opt_lepski_ns <- I_hat_ns_new
+    J_opt_lepskiboot_ns <- I_hat_ns_new
   }
   else{
     J_opt_lepski_ns <- 0
@@ -215,7 +231,6 @@ MC_j_opt <- function(n_MC, data_param, case, J_CV_bs, J_CV_ns, p_train, x_evalua
   list_g_hat_J_ns_all <- vector("list", n_MC)
   
   for (n in 1:n_MC){
-    print(n)
     simul <- simulate_data_3(data_param, g_sim_3, case)
     res <- J_opt_data_fixed(simul, J_CV_bs, J_CV_ns, p_train, x_evaluation,
                             degree, n_boot_lepski)
@@ -277,11 +292,9 @@ MC_j_opt <- function(n_MC, data_param, case, J_CV_bs, J_CV_ns, p_train, x_evalua
 #p = 0.5
 #x_eval = seq(-2, 2, length.out = 100)
 #deg = 3
-#n_boot = 10
-#simul <- simulate_data_3(c(200, 0.5, 0.9), g_sim_3, 2)
-
+#n_boot = 100
+#simul <- simulate_data_3(c(1000, 0.5, 0.9), g_sim_3, 2)
 #test <- J_opt_data_fixed(simul, J_bs_, J_ns_, p, x_eval, deg, n_boot)
-
 
 #test <- MC_j_opt(2, c(200, 0.5, 0.9), 2, J_bs_, J_ns_, p, x_eval,deg, n_boot)
 
