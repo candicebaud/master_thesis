@@ -414,7 +414,7 @@ compute_all_perf <- function(mat_g_hat_on_x, g_0_on_x, data_algo){
   }
   sup_norm = mean(sup_norm_vect)
 
-  #MA TESTER
+  #M A TESTER
   M_vect <- rep(0, n_MC)
   #matrix_Y <- data_algo$matrix_Y
   #matrix_Z <- data_algo$matrix_Z
@@ -424,8 +424,8 @@ compute_all_perf <- function(mat_g_hat_on_x, g_0_on_x, data_algo){
   #  M_vect[n] <- calcul_M_g_hat_test_sample(mat_g_hat_on_x[n,], Omega, n_eval, matrix_Y[n,])
   #}
   M = 0
-  
-  return(list(MSE = MSE, var = var, bias = bias, supnorm = sup_norm, M = M))
+  #list(MSE = MSE, var = var, bias = bias, supnorm = sup_norm, M = M)
+  return(c(M, sup_norm, MSE, bias, var))
 }
 
 
@@ -455,73 +455,112 @@ compute_perf_J_sub <- function(g_eval, g_on_x, avg){
   sup_norm = max(abs(g_eval - g_on_x))
   M = 0 # TO DO
   
-  retun(c(MSE, var, bias, sup_norm, M))
+  return(c(M, sup_norm, MSE, bias, var))
 }
 
 
 compute_perf_J <- function(res, g_on_x){
   #filtrer ici par rapport aux cas gamma = 0 
-  
-  
-  
-  perf_5_bs <- matrix(0, n_MC, 5)
-  perf_7_bs <- matrix(0, n_MC, 5)
-  perf_11_bs <- matrix(0, n_MC, 5)
-  perf_19_bs <- matrix(0, n_MC, 5)
-  perf_35_bs <- matrix(0, n_MC, 5)
-  
-  perf_3_ns <- matrix(0, n_MC, 5)
-  perf_5_ns <- matrix(0, n_MC, 5)
-  perf_9_ns <- matrix(0, n_MC, 5)
-  perf_17_ns <- matrix(0, n_MC, 5)
-  perf_33_ns <- matrix(0, n_MC, 5)
-  
-  #calcul des avg
-  avg_5_bs <- rep(0, length = 100)
-  avg_7_bs <- rep(0, length = 100)
-  avg_11_bs <- rep(0, length = 100)
-  avg_19_bs <- rep(0, length = 100)
-  avg_35_bs <- rep(0, length = 100)
-  
-  avg_3_ns <- rep(0, length = 100)
-  avg_5_ns <- rep(0, length = 100)
-  avg_9_ns <- rep(0, length = 100)
-  avg_17_ns <- rep(0, length = 100)
-  avg_33_ns <- rep(0, length = 100)
-  
-  for (n in 1:n_MC){
-    g_bs <- res$list_g_hat_J_bs[[n]] 
-    g_ns <- res$list_g_hat_J_ns[[n]]
-    for (x in 1:100){
-      avg_5_bs[x] = avg_5_bs[x] + g_bs[[1]][x] 
-      avg_7_bs[x] = avg_7_bs[x] + g_bs[[2]][x]
-      avg_11_bs[x] = avg_11_bs[x] + g_bs[[3]][x]
-      avg_19_bs[x] = avg_19_bs[x] + g_bs[[4]][x]
-      avg_35_bs[x] = avg_35_bs[x] + g_bs[[5]][x]
-      
-      avg_3_ns[x] = avg_3_ns[x] + g_ns[[1]][x] 
-      avg_5_ns[x] = avg_5_ns[x] + g_ns[[2]][x]
-      avg_9_ns[x] = avg_9_ns[x] + g_ns[[3]][x]
-      avg_17_ns[x] = avg_17_ns[x] + g_ns[[4]][x]
-      avg_33_ns[x] = avg_33_ns[x] + g_ns[[5]][x]}
-  }
+  n_simu = length(res$list_gamma_bs)
 
-  for (n in 1:n_MC){
-    g_bs <- res$list_g_hat_J_bs[[n]] #iteration n 
-    perf_5_bs[n,] <- compute_perf_J_sub(g_bs[[1]], g_on_x, avg_5_bs)
-    perf_7_bs[n,] <- compute_perf_J_sub(g_bs[[2]], g_on_x, avg_7_bs)
-    perf_11_bs[n,] <- compute_perf_J_sub(g_bs[[3]], g_on_x, avg_11_bs)
-    perf_19_bs[n,] <- compute_perf_J_sub(g_bs[[4]], g_on_x, avg_19_bs)
-    perf_35_bs[n,] <- compute_perf_J_sub(g_bs[[5]], g_on_x, avg_35_bs)
-    
-    g_ns <- res$list_g_hat_J_bs[[n]]
-    perf_3_ns[n,] <- compute_perf_J_sub(g_ns[[1]], g_on_x, avg_3_ns)
-    perf_5_ns[n,] <- compute_perf_J_sub(g_ns[[2]], g_on_x, avg_5_ns)
-    perf_9_ns[n,] <- compute_perf_J_sub(g_ns[[3]], g_on_x, avg_9_ns)
-    perf_17_ns[n,] <- compute_perf_J_sub(g_ns[[4]], g_on_x, avg_17_ns)
-    perf_33_ns[n,] <- compute_perf_J_sub(g_ns[[5]], g_on_x, avg_33_ns)
-  }
+  #trouver la taille de matrice pour chaque cas 
+  index_5_bs <- numeric()
+  index_7_bs <- numeric()
+  index_11_bs <- numeric()
+  index_19_bs <- numeric()
+  index_35_bs <- numeric()
   
+  for (n in 1:n_simu){
+    gamma_bs_5 <- res$list_gamma_bs[[n]][[1]]
+    gamma_bs_7 <- res$list_gamma_bs[[n]][[2]]
+    gamma_bs_11 <- res$list_gamma_bs[[n]][[3]]
+    gamma_bs_19 <- res$list_gamma_bs[[n]][[4]]
+    gamma_bs_35 <- res$list_gamma_bs[[n]][[5]]
+    
+    if (sum(gamma_bs_5)!=0){
+      index_5_bs = append(index_5_bs, n)
+    }
+    if (sum(gamma_bs_7)!=0){
+      index_7_bs = append(index_7_bs, n)
+    }
+    if (sum(gamma_bs_11)!=0){
+      index_11_bs = append(index_11_bs, n)
+    }
+    if (sum(gamma_bs_19)!=0){
+      index_19_bs = append(index_19_bs, n)
+    }
+    if (sum(gamma_bs_35)!=0){
+      index_35_bs = append(index_35_bs, n)
+    }}
+  
+  index_3_ns <- numeric()
+  index_5_ns <- numeric()
+  index_9_ns <- numeric()
+  index_17_ns <- numeric()
+  index_33_ns <- numeric()
+  
+  for (n in 1:n_simu){
+    gamma_ns_3 <- res$list_gamma_ns[[n]][[1]]
+    gamma_ns_5 <- res$list_gamma_ns[[n]][[2]]
+    gamma_ns_9 <- res$list_gamma_ns[[n]][[3]]
+    gamma_ns_17 <- res$list_gamma_ns[[n]][[4]]
+    gamma_ns_33 <- res$list_gamma_ns[[n]][[5]]
+    
+    if (sum(gamma_ns_3)!=0){
+      index_3_ns = append(index_3_ns, n)
+    }
+    if (sum(gamma_ns_5)!=0){
+      index_5_ns = append(index_5_ns, n)
+    }
+    if (sum(gamma_ns_9)!=0){
+      index_9_ns = append(index_9_ns, n)
+    }
+    if (sum(gamma_ns_17)!=0){
+      index_17_ns = append(index_17_ns, n)
+    }
+    if (sum(gamma_ns_33)!=0){
+      index_33_ns = append(index_33_ns, n)
+    }}
+  
+  
+  perf_5_bs <- matrix(0, length(index_5_bs), 5)
+  perf_7_bs <- matrix(0, length(index_7_bs), 5)
+  perf_11_bs <- matrix(0, length(index_11_bs), 5)
+  perf_19_bs <- matrix(0, length(index_19_bs), 5)
+  perf_35_bs <- matrix(0, length(index_35_bs), 5)
+  
+  perf_3_ns <- matrix(0, length(index_3_ns), 5)
+  perf_5_ns <- matrix(0, length(index_5_ns), 5)
+  perf_9_ns <- matrix(0, length(index_9_ns), 5)
+  perf_17_ns <- matrix(0, length(index_17_ns), 5)
+  perf_33_ns <- matrix(0, length(index_33_ns), 5)
+  
+  avg_5_bs <- compute_avg_sub(index_5_bs, res, 1, 1)
+  avg_7_bs <- compute_avg_sub(index_7_bs, res, 1, 2)
+  avg_11_bs <- compute_avg_sub(index_11_bs, res, 1, 3)
+  avg_19_bs <- compute_avg_sub(index_19_bs, res, 1, 4)
+  avg_35_bs <- compute_avg_sub(index_35_bs, res, 1, 5)
+  
+  avg_3_ns <- compute_avg_sub(index_3_ns, res, 0, 1)
+  avg_5_ns <- compute_avg_sub(index_5_ns, res, 0, 2)
+  avg_9_ns <- compute_avg_sub(index_9_ns, res, 0, 3)
+  avg_17_ns <- compute_avg_sub(index_17_ns, res, 0, 4)
+  avg_33_ns <- compute_avg_sub(index_33_ns, res, 0, 5)  
+  
+  
+  perf_5_bs <- compute_perf_J_sub_sub(index_5_bs, perf_5_bs, res, 1, 1, avg_5_bs, g_on_x)
+  perf_7_bs <- compute_perf_J_sub_sub(index_7_bs, perf_7_bs, res, 1, 2, avg_7_bs, g_on_x)
+  perf_11_bs <- compute_perf_J_sub_sub(index_11_bs, perf_11_bs, res, 1, 3, avg_11_bs, g_on_x)
+  perf_19_bs <- compute_perf_J_sub_sub(index_19_bs, perf_19_bs, res, 1, 4, avg_19_bs, g_on_x)
+  perf_35_bs <- compute_perf_J_sub_sub(index_35_bs, perf_35_bs, res, 1, 5, avg_35_bs, g_on_x)
+  
+  perf_3_ns <- compute_perf_J_sub_sub(index_3_ns, perf_3_ns, res, 0, 1, avg_3_ns, g_on_x)
+  perf_5_ns <- compute_perf_J_sub_sub(index_5_ns, perf_5_ns, res, 0, 2, avg_5_ns, g_on_x)
+  perf_9_ns <- compute_perf_J_sub_sub(index_9_ns, perf_9_ns, res, 0, 3, avg_9_ns, g_on_x)
+  perf_17_ns <- compute_perf_J_sub_sub(index_17_ns, perf_17_ns, res, 0, 4, avg_17_ns, g_on_x)
+  perf_33_ns <- compute_perf_J_sub_sub(index_33_ns, perf_33_ns, res, 0, 5, avg_33_ns, g_on_x)
+  
+    
   return(list(avg_perf_5_bs = colMeans(perf_5_bs),
               avg_perf_7_bs = colMeans(perf_7_bs),
               avg_perf_11_bs = colMeans(perf_11_bs),
@@ -535,11 +574,187 @@ compute_perf_J <- function(res, g_on_x){
 }
 
 
+compute_avg_sub <- function(index_vector, res, bs_bool, num_gamma){
+  avg <- rep(0, length = 100)
+  if (length(index_vector)>0){
+    for (n in 1:length(index_vector)){
+      index = index_vector[n]
+      #print(index)
+      if (bs_bool == 1){
+        g_bs <- res$list_g_hat_J_bs[[index]]
+        for (x in 1:100){
+          avg[x] = avg[x] + g_bs[[num_gamma]][x] 
+        }}
+      else{
+        g_ns <- res$list_g_hat_J_ns[[index]]
+        for (x in 1:100){
+          avg[x] = avg[x] + g_ns[[num_gamma]][x] 
+        }}}
+    return(avg)}
+  else{
+    return(rep(0, 100))
+  }
+  }
+    
+
+compute_perf_J_sub_sub <- function(index_vector, matrix, res, bs_bool, num_gamma, avg_vect, g_on_x){
+  if (length(index_vector)>0){
+    for (n in 1:length(index_vector)){
+      index = index_vector[n]
+      if (bs_bool == 1){
+        g_bs <- res$list_g_hat_J_bs[[index]] #iteration n 
+        matrix[n,] <- compute_perf_J_sub(g_bs[[num_gamma]], g_on_x, avg_vect)
+      }
+      else{
+        g_ns <- res$list_g_hat_J_ns[[index]]
+        matrix[n,] <- compute_perf_J_sub(g_ns[[num_gamma]], g_on_x, avg_vect)
+      }}
+    return(matrix)}
+  else{
+    return(matrix(999, 2, 5))
+  }
+}
+  
+#calcul des avg
+# avg_5_bs <- rep(0, length = 100)
+# avg_7_bs <- rep(0, length = 100)
+# avg_11_bs <- rep(0, length = 100)
+# avg_19_bs <- rep(0, length = 100)
+# avg_35_bs <- rep(0, length = 100)
+# 
+# avg_3_ns <- rep(0, length = 100)
+# avg_5_ns <- rep(0, length = 100)
+# avg_9_ns <- rep(0, length = 100)
+# avg_17_ns <- rep(0, length = 100)
+# avg_33_ns <- rep(0, length = 100)
+  
+  
+  # for (n in 1:n_MC){
+  #   g_bs <- res$list_g_hat_J_bs[[n]] 
+  #   g_ns <- res$list_g_hat_J_ns[[n]]
+  #   for (x in 1:100){
+  #     avg_5_bs[x] = avg_5_bs[x] + g_bs[[1]][x] 
+  #     avg_7_bs[x] = avg_7_bs[x] + g_bs[[2]][x]
+  #     avg_11_bs[x] = avg_11_bs[x] + g_bs[[3]][x]
+  #     avg_19_bs[x] = avg_19_bs[x] + g_bs[[4]][x]
+  #     avg_35_bs[x] = avg_35_bs[x] + g_bs[[5]][x]
+  #     
+  #     avg_3_ns[x] = avg_3_ns[x] + g_ns[[1]][x] 
+  #     avg_5_ns[x] = avg_5_ns[x] + g_ns[[2]][x]
+  #     avg_9_ns[x] = avg_9_ns[x] + g_ns[[3]][x]
+  #     avg_17_ns[x] = avg_17_ns[x] + g_ns[[4]][x]
+  #     avg_33_ns[x] = avg_33_ns[x] + g_ns[[5]][x]}
+  # }
+
+  # for (n in 1:n_MC){
+  #   g_bs <- res$list_g_hat_J_bs[[n]] #iteration n 
+  #   perf_5_bs[n,] <- compute_perf_J_sub(g_bs[[1]], g_on_x, avg_5_bs)
+  #   perf_7_bs[n,] <- compute_perf_J_sub(g_bs[[2]], g_on_x, avg_7_bs)
+  #   perf_11_bs[n,] <- compute_perf_J_sub(g_bs[[3]], g_on_x, avg_11_bs)
+  #   perf_19_bs[n,] <- compute_perf_J_sub(g_bs[[4]], g_on_x, avg_19_bs)
+  #   perf_35_bs[n,] <- compute_perf_J_sub(g_bs[[5]], g_on_x, avg_35_bs)
+  #   
+  #   g_ns <- res$list_g_hat_J_ns[[n]]
+  #   perf_3_ns[n,] <- compute_perf_J_sub(g_ns[[1]], g_on_x, avg_3_ns)
+  #   perf_5_ns[n,] <- compute_perf_J_sub(g_ns[[2]], g_on_x, avg_5_ns)
+  #   perf_9_ns[n,] <- compute_perf_J_sub(g_ns[[3]], g_on_x, avg_9_ns)
+  #   perf_17_ns[n,] <- compute_perf_J_sub(g_ns[[4]], g_on_x, avg_17_ns)
+  #   perf_33_ns[n,] <- compute_perf_J_sub(g_ns[[5]], g_on_x, avg_33_ns)
+  # }
+  
+  
+
 
 
 
 #### Data process tout d'un coup ####
-#simulation considered
+create_df_measures <- function(n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values, g_on_x){
+  #missing data 
+  missing_iter <- missing_number(n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values)
+  n_null = missing_iter$n_null #not even computed
+  
+  
+  #algorithms, filter 
+  res_1 <- create_list_to_analyze(n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values)
+  res_1_filter <- filter_res(res_1)
+  
+  #perf algos
+  perf_algos <- compute_perf(res_1_filter, g_on_x)
+  
+  #perf J fixed
+  perf_J <- compute_perf_J(res_1, g_on_x) #: plus qu'à faire lui et j'aurai tout 
+  
+  # missing iterations on the algos
+  n_CVM_bs = res_1_filter$n_CVM_bs + n_null
+  n_CVM_ns = res_1_filter$n_CVM_ns + n_null
+  n_CVMSE_bs = res_1_filter$n_CVMSE_bs + n_null
+  n_CVMSE_ns = res_1_filter$n_CVMSE_ns + n_null
+  n_lepski_bs = res_1_filter$n_lepski_bs + n_null
+  n_lepski_ns = res_1_filter$n_lepski_ns + n_null
+  n_lepskiboot_bs = res_1_filter$n_lepskiboot_bs + n_null
+  n_lepskiboot_ns = res_1_filter$n_lepskiboot_ns + n_null
+  
+  vect_missing_algos <- c(n_CVM_bs, n_CVM_ns, n_CVMSE_bs, n_CVMSE_ns,
+                          n_lepski_bs, n_lepski_ns, n_lepskiboot_bs, n_lepskiboot_ns)
+  
+  #une fois que j'ai tout : faire sortir seulement un df avec toutes les performances
+  
+  columns <- c("M", "sup_norm", "MSE", "bias", "var", "missing")
+  rows <- c("J_bs = 5", "J_bs = 7", "J_bs = 11", "J_bs = 19", "J_bs = 35", 
+            "J_ns = 3", "J_ns = 5", "J_ns = 9", "J_ns = 17", "J_ns = 33", 
+            "CVM_bs", "CVM_ns", "CVMSE_bs", "CVMSE_ns", 
+            "lepski_bs", "lepski_ns", "lepskiboot_bs", "lepskiboot_ns")
+  df <- data.frame(matrix(ncol = length(columns), nrow = length(rows)))
+  colnames(df) <- columns
+  rownames(df) <- rows
+  
+  
+  # vector_bs
+  values <- 2^(1:5) + 3
+  vect_bs <- sapply(values, function(value) {
+    eval(parse(text = paste0("missing_iter$n_gamma_bs_", value)))
+  })
+  values <- 2^(1:5) + 1
+  vect_ns <- sapply(values, function(value) {
+    eval(parse(text = paste0("missing_iter$n_gamma_ns_", value)))
+  })
+  missing_vector <- c(vect_bs, vect_ns, vect_missing_algos)
+  df[, "missing"] <- missing_vector
+  
+  col_perf <- c("M", "sup_norm", "MSE", "bias", "var")
+  df["J_bs = 5", col_perf] <- perf_J$avg_perf_5_bs
+  df["J_bs = 7", col_perf] <- perf_J$avg_perf_7_bs
+  df["J_bs = 11", col_perf] <- perf_J$avg_perf_11_bs
+  df["J_bs = 19", col_perf] <- perf_J$avg_perf_19_bs
+  df["J_bs = 35", col_perf] <- perf_J$avg_perf_35_bs
+  
+  df["J_ns = 3", col_perf] <- perf_J$avg_perf_3_ns
+  df["J_ns = 5", col_perf] <- perf_J$avg_perf_5_ns
+  df["J_ns = 9", col_perf] <- perf_J$avg_perf_9_ns
+  df["J_ns = 17", col_perf] <- perf_J$avg_perf_17_ns
+  df["J_ns = 33", col_perf] <- perf_J$avg_perf_33_ns
+  
+  df["CVM_bs", col_perf] <- perf_algos$measures_CVM_bs
+  df["CVM_ns", col_perf] <- perf_algos$measures_CVM_ns
+  df["CVMSE_bs", col_perf] <- perf_algos$measures_CVMSE_bs
+  df["CVMSE_ns", col_perf] <- perf_algos$measures_CVMSE_ns
+  df["lepski_bs", col_perf] <- perf_algos$measures_lepski_bs
+  df["lepski_ns", col_perf] <- perf_algos$measures_lepski_ns
+  df["lepskiboot_bs", col_perf] <- perf_algos$measures_lepski_bs
+  df["lepskiboot_ns", col_perf] <- perf_algos$measures_lepski_ns
+  
+  return(df)
+  
+  # return(list(res_filtered = res_1_filter, perf_algos = perf_algos,
+  #             n_CVM_bs = n_CVM_bs, n_CVM_ns = n_CVM_ns,
+  #             n_CVMSE_bs = n_CVMSE_bs, n_CVMSE_ns = n_CVMSE_ns,
+  #             n_lepski_bs = n_lepski_bs, n_lepski_ns = n_lepski_ns,
+  #             n_lepskiboot_bs = n_lepskiboot_bs, n_lepskiboot_ns = n_lepskiboot_ns,
+  #             missing_iter_J = missing_iter,
+  #             perf_J = perf_J))
+}
+
+#### test on a simulation given ####
 n_MC = 2000
 degree = 3
 p_train = 0.5
@@ -556,42 +771,5 @@ n_eval = 100
 
 g_on_x = g_sim_3(seq(-2, 2, length.out = 100), 2)
 
-process_all <- function(n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values, g_on_x){
-  #missing data 
-  missing_iter <- missing_number(n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values)
-  n_null = missing_iter$n_null #not even computed
 
-  
-  #algorithms, filter 
-  res_1 <- create_list_to_analyze(n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values)
-  res_1_filter <- filter_res(res_1)
-  
-  #perf algos
-  perf_algos <- compute_perf(res_1_filter, g_on_x)
-  
-  #perf J fixed
-  #perf_J <- compute_perf_J(res_1, g_on_x) : plus qu'à faire lui et j'aurai tout 
-  
-  # missing iterations on the algos
-  n_CVM_bs = res_1_filter$n_CVM_bs + n_null
-  n_CVM_ns = res_1_filter$n_CVM_ns + n_null
-  n_CVMSE_bs = res_1_filter$n_CVMSE_bs + n_null
-  n_CVMSE_ns = res_1_filter$n_CVMSE_ns + n_null
-  n_lepski_bs = res_1_filter$n_lepski_bs + n_null
-  n_lepski_ns = res_1_filter$n_lepski_ns + n_null
-  n_lepskiboot_bs = res_1_filter$n_lepskiboot_bs + n_null
-  n_lepskiboot_ns = res_1_filter$n_lepskiboot_ns + n_null
-  
-  #une fois que j'ai tout : faire sortir seulement un df avec toutes les performances
-  
-  return(list(res_1= res_1, 
-              res_filtered = res_1_filter, perf_algos = perf_algos,
-              n_CVM_bs = n_CVM_bs, n_CVM_ns = n_CVM_ns,
-              n_CVMSE_bs = n_CVMSE_bs, n_CVMSE_ns = n_CVMSE_ns,
-              n_lepski_bs = n_lepski_bs, n_lepski_ns = n_lepski_ns,
-              n_lepskiboot_bs = n_lepskiboot_bs, n_lepskiboot_ns = n_lepskiboot_ns,
-              missing_iter_J = missing_iter))
-}
-
-test <- process_all(n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values,g_on_x)
-
+df <- create_df_measures(n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values,g_on_x)
