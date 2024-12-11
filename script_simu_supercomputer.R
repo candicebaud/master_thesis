@@ -7,7 +7,6 @@ source("script_lepskichen.R")
 source("script_lepskiboot.R")
 
 
-set.seed(47820)
 
 #### Fonction ####
 J_opt_data_fixed <- function(simul_data, J_CV_bs, J_CV_ns, p_train, x_evaluation, degree, n_boot_lepski){
@@ -54,8 +53,15 @@ J_opt_data_fixed <- function(simul_data, J_CV_bs, J_CV_ns, p_train, x_evaluation
   zero_indices_bs = which(sapply(list_g_hat_J_bs, function(x) all(x == 0))) #filter indices
   zero_indices_ns = which(sapply(list_g_hat_J_ns, function(x) all(x == 0)))
   
-  new_J_CV_bs <- J_CV_bs[-zero_indices_bs] #nouvelle liste d'indices
-  new_J_CV_ns <- J_CV_ns[-zero_indices_ns]
+  if (length(zero_indices_bs)>0){
+    new_J_CV_bs <- J_CV_bs[-zero_indices_bs]}
+  else{
+    new_J_CV_bs <- J_CV_bs}
+  if (length(zero_indices_ns)>0){
+    new_J_CV_ns <- J_CV_ns[-zero_indices_ns]}
+  else{
+    new_J_CV_ns <- J_CV_ns
+  }
   
   #do the splitting for cross validation : to have the same data for both algorithms
   sampled_data <- sample_train_test(Z, Y, W, p_train)
@@ -70,14 +76,10 @@ J_opt_data_fixed <- function(simul_data, J_CV_bs, J_CV_ns, p_train, x_evaluation
     J_opt_CV_M_bs <- optimization_CV_M(Z_train, W_train, Y_train, Z_validation, W_validation, Y_validation,
                                        new_J_CV_bs, p_train, 
                                        degree, x_evaluation, create_dyadic_P_splines_bs)
-    #j_index_ <- which(J_CV_bs == J_opt_CV_M_bs)
-    #g_hat_J_bs_CVM = list_g_hat_J_bs[[j_index_]]
     
     J_opt_CVMSE_bs <- optimization_CV_MSE(Z_train, W_train, Y_train, Z_validation, W_validation, Y_validation,
                                           new_J_CV_bs, p_train, 
                                           degree, x_evaluation, create_dyadic_P_splines_bs)
-    #j_index_ <- which(J_CV_bs == J_opt_CVMSE_bs)
-    #g_hat_J_bs_CVMSE = list_g_hat_J_bs[[j_index_]]
   }
   else if(length(new_J_CV_bs)==1){ #si on a qu'un seul choix
     J_opt_CV_M_bs <- new_J_CV_bs
@@ -85,23 +87,17 @@ J_opt_data_fixed <- function(simul_data, J_CV_bs, J_CV_ns, p_train, x_evaluation
     }
   else{
     J_opt_CV_M_bs <- 0
-    #g_hat_J_bs_CVM <- rep(0, length(x_evaluation))
     J_opt_CVMSE_bs <- 0
-    #g_hat_J_bs_CVMSE <- rep(0, length(x_evaluation))
   }
   
   if (length(new_J_CV_ns)>1){
     J_opt_CV_M_ns <- optimization_CV_M(Z_train, W_train, Y_train, Z_validation, W_validation, Y_validation,
                                        new_J_CV_ns, p_train, 
                                        degree, x_evaluation, create_dyadic_P_splines_ns)
-    #j_index_ <- which(J_CV_ns == J_opt_CV_M_ns)
-    #g_hat_J_ns_CVM = list_g_hat_J_ns[[j_index_]]
     
     J_opt_CVMSE_ns <- optimization_CV_MSE(Z_train, W_train, Y_train, Z_validation, W_validation, Y_validation,
                                           new_J_CV_ns, p_train, 
                                           degree, x_evaluation, create_dyadic_P_splines_ns)
-    #j_index_ <- which(J_CV_ns == J_opt_CVMSE_ns)
-    #g_hat_J_ns_CVMSE = list_g_hat_J_ns[[j_index_]]}
   }
   else if (length(new_J_CV_ns)==1){
     J_opt_CV_M_ns <- new_J_CV_ns
@@ -109,9 +105,7 @@ J_opt_data_fixed <- function(simul_data, J_CV_bs, J_CV_ns, p_train, x_evaluation
   }
   else{
     J_opt_CV_M_ns <- 0
-    #g_hat_J_ns_CVM <- rep(0, length(x_evaluation))
     J_opt_CVMSE_ns <- 0
-    #g_hat_J_ns_CVMSE <- rep(0, length(x_evaluation))
   }
   
   rm(sampled_data, Z_train, Z_validation, Y_train, Y_validation, W_train, W_validation)
@@ -129,22 +123,29 @@ J_opt_data_fixed <- function(simul_data, J_CV_bs, J_CV_ns, p_train, x_evaluation
   I_hat_ns = sort(I_hat_ns[sapply(I_hat_ns,valid_dim_ns, degree)]) #select only the valid dimensions
   
   # filtrer les valeurs possibles : on enlève ceux où gamma est zéro
-  I_hat_bs_new = I_hat_bs[-zero_indices_bs]
-  I_hat_ns_new = I_hat_ns[-zero_indices_ns]
+  if (length(zero_indices_bs)>0){
+    I_hat_bs_new <- I_hat_bs[-zero_indices_bs]
+  }
+  else{
+    I_hat_bs_new <- I_hat_bs
+  }
+  if (length(zero_indices_ns)>0){
+    I_hat_ns_new <- I_hat_ns[-zero_indices_ns]
+  }
+  else{
+    I_hat_ns_new <- I_hat_ns
+  }
+  
   
   if (length(I_hat_bs_new) > 1){
     c_0 <- 10
     J_opt_lepski_bs <- lepski_chen(I_hat_bs_new, c_0, m_m, list_g_hat_J_bs, W, Z, Y, degree, 
                                    valid_dim_b_splines, create_dyadic_P_splines_bs)
-    #j_index_ <- which(J_CV_bs == J_opt_lepski_bs)
-    #g_hat_J_bs_lepski = list_g_hat_J_bs[[j_index_]]
     
     # lepski boot
     J_opt_lepskiboot_bs <- lepski_bootstrap(I_hat_bs_new, n_boot_lepski, list_gamma_bs, list_M_boot_bs, 
                                             list_g_hat_J_bs, valid_dim_b_splines, x_evaluation, 
                                             W, Z, Y, degree, create_dyadic_P_splines_bs)
-    #j_index_ <- which(J_CV_bs == J_opt_lepskiboot_bs)
-    #g_hat_J_bs_lepski_boot = list_g_hat_J_bs[[j_index_]]}
   }
   else if (length(I_hat_bs_new)==1){
     J_opt_lepski_bs <- I_hat_ns_new
@@ -152,22 +153,16 @@ J_opt_data_fixed <- function(simul_data, J_CV_bs, J_CV_ns, p_train, x_evaluation
   }
   else{
     J_opt_lepski_bs <- 0
-    #g_hat_J_bs_lepski <- rep(0, length(x_evaluation))
     J_opt_lepskiboot_bs <- 0
-    #g_hat_J_bs_lepski_boot <- rep(0, length(x_evaluation))
   }
   
   if (length(I_hat_ns_new)>1){
     J_opt_lepski_ns <- lepski_chen(I_hat_ns_new, c_0, m_m, list_g_hat_J_ns, W, Z, Y, degree, 
                                    valid_dim_ns, create_dyadic_P_splines_ns)
-    #j_index_ <- which(J_CV_ns == J_opt_lepski_ns)
-    #g_hat_J_ns_lepski = list_g_hat_J_ns[[j_index_]]
     
     J_opt_lepskiboot_ns <- lepski_bootstrap(I_hat_ns_new, n_boot_lepski, list_gamma_ns, list_M_boot_ns,
                                             list_g_hat_J_ns, valid_dim_ns, x_evaluation, 
                                             W, Z, Y, degree, create_dyadic_P_splines_ns)
-    #j_index_ <- which(J_CV_ns == J_opt_lepskiboot_ns)
-    #g_hat_J_ns_lepski_boot = list_g_hat_J_ns[[j_index_]]}
   }
   else if (length(I_hat_ns_new)==1){
     J_opt_lepski_ns <- I_hat_ns_new
@@ -175,12 +170,10 @@ J_opt_data_fixed <- function(simul_data, J_CV_bs, J_CV_ns, p_train, x_evaluation
   }
   else{
     J_opt_lepski_ns <- 0
-    #g_hat_J_ns_lepski <- rep(0, length(x_evaluation))
     J_opt_lepskiboot_ns <- 0
-    #g_hat_J_ns_lepski_boot <- rep(0, length(x_evaluation))
   }
   
-  rm(list_M_boot_bs, list_M_boot_ns, W , Y, Z, I_hat_bs, I_hat_ns)
+  rm(list_M_boot_bs, list_M_boot_ns, I_hat_bs, I_hat_ns)
   gc()
   
   
@@ -190,100 +183,8 @@ J_opt_data_fixed <- function(simul_data, J_CV_bs, J_CV_ns, p_train, x_evaluation
               J_opt_lepski_bs = J_opt_lepski_bs, J_opt_lepski_ns = J_opt_lepski_ns,
               J_opt_lepskiboot_bs = J_opt_lepskiboot_bs, J_opt_lepskiboot_ns = J_opt_lepskiboot_ns,
               list_gamma_bs = list_gamma_bs, list_gamma_ns = list_gamma_ns,
-              list_g_hat_J_bs = list_g_hat_J_bs, list_g_hat_J_ns = list_g_hat_J_ns))
-              #g_hat_J_bs_CVM = g_hat_J_bs_CVM, g_hat_J_ns_CVM = g_hat_J_ns_CVM,
-              #g_hat_J_bs_CVMSE = g_hat_J_bs_CVMSE, g_hat_J_ns_CVMSE = g_hat_J_ns_CVMSE,
-              #g_hat_J_bs_lepski = g_hat_J_bs_lepski, g_hat_J_ns_lepski = g_hat_J_ns_lepski,
-              #g_hat_J_bs_lepski_boot = g_hat_J_bs_lepski_boot, g_hat_J_ns_lepski_boot = g_hat_J_ns_lepski_boot))
-  
-}
-
-
-#### MC ###
-MC_j_opt <- function(n_MC, data_param, case, J_CV_bs, J_CV_ns, p_train, x_evaluation,
-                     degree, n_boot_lepski){
-  
-  n_eval = length(x_evaluation)
-  list_J_opt_CV_M_bs <- numeric(n_MC)
-  list_J_opt_CV_M_ns <- numeric(n_MC)
-  list_J_opt_CVMSE_bs <- numeric(n_MC)
-  list_J_opt_CVMSE_ns <- numeric(n_MC)
-  list_J_opt_lepski_bs <- numeric(n_MC)
-  list_J_opt_lepski_ns <- numeric(n_MC)
-  list_J_opt_lepskiboot_bs <- numeric(n_MC)
-  list_J_opt_lepskiboot_ns <- numeric(n_MC)
-  
-  #list_J_opt <- vector("list", 8)
-  
-  list_all_gamma_bs <- vector("list", n_MC)
-  list_all_gamma_ns <- vector("list", n_MC)
-  
-  #list_g_hat_J_bs_CVM <- matrix(NA, nrow = n_MC, ncol = n_eval)
-  #list_g_hat_J_ns_CVM <- matrix(NA, nrow = n_MC, ncol = n_eval)
-  #list_g_hat_J_bs_CVMSE <- matrix(NA, nrow = n_MC, ncol = n_eval)
-  #list_g_hat_J_ns_CVMSE <- matrix(NA, nrow = n_MC, ncol = n_eval)
-  #list_g_hat_J_bs_lepski <- matrix(NA, nrow = n_MC, ncol = n_eval)
-  #list_g_hat_J_ns_lepski <- matrix(NA, nrow = n_MC, ncol = n_eval)
-  #list_g_hat_J_bs_lepski_boot <- matrix(NA, nrow = n_MC, ncol = n_eval)
-  #list_g_hat_J_ns_lepski_boot <- matrix(NA, nrow = n_MC, ncol = n_eval)
-  
-  list_g_hat_J_bs_all <- vector("list", n_MC)
-  list_g_hat_J_ns_all <- vector("list", n_MC)
-  
-  for (n in 1:n_MC){
-    simul <- simulate_data_3(data_param, g_sim_3, case)
-    res <- J_opt_data_fixed(simul, J_CV_bs, J_CV_ns, p_train, x_evaluation,
-                            degree, n_boot_lepski)
-    
-    #res <- list(J_opt_CV_M_bs = sample(J_CV_bs, 1), J_opt_CV_M_ns = sample(J_CV_bs, 1),
-    #            J_opt_CVMSE_bs = sample(J_CV_bs, 1), J_opt_CVMSE_ns = sample(J_CV_bs,1),
-    #            J_opt_lepski_bs = sample(J_CV_bs, 1),J_opt_lepski_ns = sample(J_CV_bs, 1),
-    #            J_opt_lepskiboot_bs = sample(J_CV_bs, 1), J_opt_lepskiboot_ns = sample(J_CV_bs, 1),
-    #            g_hat_J_bs_CVM = rnorm(100, 0, 1), g_hat_J_ns_CVM = rnorm(100, 0, 1), 
-    #            g_hat_J_bs_CVMSE = rnorm(100, 0, 1), g_hat_J_ns_CVMSE = rnorm(100, 0, 1),
-    #            g_hat_J_bs_lepski = rnorm(100, 0, 1), g_hat_J_ns_lepski =rnorm(100, 0, 1) , 
-    #            g_hat_J_bs_lepski_boot= rnorm(100, 0, 1), g_hat_J_ns_lepski_boot= rnorm(100, 0, 1))
-                
-    list_J_opt_CV_M_bs[n] <- res$J_opt_CV_M_bs
-    list_J_opt_CV_M_ns[n] <- res$J_opt_CV_M_ns
-    list_J_opt_CVMSE_bs[n] <- res$J_opt_CVMSE_bs
-    list_J_opt_CVMSE_ns[n] <- res$J_opt_CVMSE_ns
-    list_J_opt_lepski_bs[n] <- res$J_opt_lepski_bs
-    list_J_opt_lepski_ns[n] <- res$J_opt_lepski_ns
-    list_J_opt_lepskiboot_bs[n] <- res$J_opt_lepskiboot_bs
-    list_J_opt_lepskiboot_ns[n] <- res$J_opt_lepskiboot_ns
-    
-    list_all_gamma_bs[[n]] <- res$list_gamma_bs
-    list_all_gamma_ns[[n]] <- res$list_gamma_ns
-    
-    #list_g_hat_J_bs_CVM[n,] <- res$g_hat_J_bs_CVM
-    #list_g_hat_J_ns_CVM[n,] <- res$g_hat_J_ns_CVM
-    #list_g_hat_J_bs_CVMSE[n,] <- res$g_hat_J_bs_CVMSE
-    #list_g_hat_J_ns_CVMSE[n,] <- res$g_hat_J_ns_CVMSE
-    #list_g_hat_J_bs_lepski[n,] <- res$g_hat_J_bs_lepski
-    #list_g_hat_J_ns_lepski[n,] <- res$g_hat_J_ns_lepski
-    #list_g_hat_J_bs_lepski_boot[n,] <- res$g_hat_J_bs_lepski_boot
-    #list_g_hat_J_ns_lepski_boot[n,] <- res$g_hat_J_ns_lepski_boot
-    
-    list_g_hat_J_bs_all[[n]] <- res$list_g_hat_J_bs
-    list_g_hat_J_ns_all[[n]] <- res$list_g_hat_J_ns
-    
-    #rm(simul, res)
-    #gc()
-  }
-  
-  return(list(list_J_opt_CV_M_bs = list_J_opt_CV_M_bs, list_J_opt_CV_M_ns = list_J_opt_CV_M_ns,
-         list_J_opt_CVMSE_bs = list_J_opt_CVMSE_bs, list_J_opt_CVMSE_ns = list_J_opt_CVMSE_ns,
-         list_J_opt_lepski_bs = list_J_opt_lepski_bs, list_J_opt_lepski_ns = list_J_opt_lepski_ns,
-         list_J_opt_lepskiboot_bs = list_J_opt_lepskiboot_bs, list_J_opt_lepskiboot_ns = list_J_opt_lepskiboot_ns,
-         list_g_hat_J_bs_all = list_g_hat_J_bs_all,list_g_hat_J_ns_all = list_g_hat_J_ns_all
-         #list_all_gamma_bs = list_all_gamma_bs, list_all_gamma_ns = list_all_gamma_ns,
-         #list_g_hat_J_bs_CVM = list_g_hat_J_bs_CVM, list_g_hat_J_ns_CVM = list_g_hat_J_ns_CVM,
-         #list_g_hat_J_bs_CVMSE = list_g_hat_J_bs_CVMSE, list_g_hat_J_ns_CVMSE = list_g_hat_J_ns_CVMSE,
-         #list_g_hat_J_bs_lepski = list_g_hat_J_bs_lepski, list_g_hat_J_ns_lepski = list_g_hat_J_ns_lepski,
-         #list_g_hat_J_bs_lepski_boot = list_g_hat_J_bs_lepski_boot, list_g_hat_J_ns_lepski_boot = list_g_hat_J_ns_lepski_boot))
-  ))
-         }
+              list_g_hat_J_bs = list_g_hat_J_bs, list_g_hat_J_ns = list_g_hat_J_ns,
+              W = W , Y = Y, Z = Z))}
 
 
 
@@ -292,74 +193,18 @@ MC_j_opt <- function(n_MC, data_param, case, J_CV_bs, J_CV_ns, p_train, x_evalua
 #p = 0.5
 #x_eval = seq(-2, 2, length.out = 100)
 #deg = 3
-#n_boot = 100
+#n_boot = 10
 #simul <- simulate_data_3(c(1000, 0.5, 0.9), g_sim_3, 2)
 #test <- J_opt_data_fixed(simul, J_bs_, J_ns_, p, x_eval, deg, n_boot)
 
-#test <- MC_j_opt(2, c(200, 0.5, 0.9), 2, J_bs_, J_ns_, p, x_eval,deg, n_boot)
 
-#### parallelized MC ####
-MC_j_opt_parallelized <- function(n_MC, data_param, case, J_CV_bs, J_CV_ns, p_train, x_evaluation,
-                     degree, n_boot_lepski) {
-  
-  n_eval = length(x_evaluation)
-  
-  # Initialize the lists to store the results of each MC run
-  list_J_opt_CV_M_bs <- numeric(n_MC)
-  list_J_opt_CV_M_ns <- numeric(n_MC)
-  list_J_opt_CVMSE_bs <- numeric(n_MC)
-  list_J_opt_CVMSE_ns <- numeric(n_MC)
-  list_J_opt_lepski_bs <- numeric(n_MC)
-  list_J_opt_lepski_ns <- numeric(n_MC)
-  list_J_opt_lepskiboot_bs <- numeric(n_MC)
-  list_J_opt_lepskiboot_ns <- numeric(n_MC)
-  
-  list_all_gamma_bs <- vector("list", n_MC)
-  list_all_gamma_ns <- vector("list", n_MC)
-  
-  list_g_hat_J_bs_all <- vector("list", n_MC)
-  list_g_hat_J_ns_all <- vector("list", n_MC)
-  
-  # Parallelize the MC simulations
-  foreach(n = 1:n_MC, .combine = 'c') %dopar% {
-    # Simulate data for each iteration
-    simul <- simulate_data_3(data_param, g_sim_3, case)
-    
-    # Perform the J-optimality computation
-    res <- J_opt_data_fixed(simul, J_CV_bs, J_CV_ns, p_train, x_evaluation,
-                            degree, n_boot_lepski)
-    
-    # Store the results from the J-optimality computations
-    list_J_opt_CV_M_bs[n] <- res$J_opt_CV_M_bs
-    list_J_opt_CV_M_ns[n] <- res$J_opt_CV_M_ns
-    list_J_opt_CVMSE_bs[n] <- res$J_opt_CVMSE_bs
-    list_J_opt_CVMSE_ns[n] <- res$J_opt_CVMSE_ns
-    list_J_opt_lepski_bs[n] <- res$J_opt_lepski_bs
-    list_J_opt_lepski_ns[n] <- res$J_opt_lepski_ns
-    list_J_opt_lepskiboot_bs[n] <- res$J_opt_lepskiboot_bs
-    list_J_opt_lepskiboot_ns[n] <- res$J_opt_lepskiboot_ns
-    
-    list_all_gamma_bs[[n]] <- res$list_gamma_bs
-    list_all_gamma_ns[[n]] <- res$list_gamma_ns
-    
-    list_g_hat_J_bs_all[[n]] <- res$list_g_hat_J_bs
-    list_g_hat_J_ns_all[[n]] <- res$list_g_hat_J_ns
-  }
-  
-  # Return the collected results
-  return(list(
-    list_J_opt_CV_M_bs = list_J_opt_CV_M_bs,
-    list_J_opt_CV_M_ns = list_J_opt_CV_M_ns,
-    list_J_opt_CVMSE_bs = list_J_opt_CVMSE_bs,
-    list_J_opt_CVMSE_ns = list_J_opt_CVMSE_ns,
-    list_J_opt_lepski_bs = list_J_opt_lepski_bs,
-    list_J_opt_lepski_ns = list_J_opt_lepski_ns,
-    list_J_opt_lepskiboot_bs = list_J_opt_lepskiboot_bs,
-    list_J_opt_lepskiboot_ns = list_J_opt_lepskiboot_ns,
-    list_g_hat_J_bs_all = list_g_hat_J_bs_all,
-    list_g_hat_J_ns_all = list_g_hat_J_ns_all
-  ))
-}
+
+
+
+
+
+
+
 
 
 

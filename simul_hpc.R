@@ -37,12 +37,15 @@ n_boot = 100
 
 set.seed(47820)
 
+filename <- paste("data_", n_MC, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_values, ".R" ,sep = "")
+load(filename)
 
 # Parallelize the MC simulations
 results <-foreach(n = 1:n_MC, .packages = c("splines", "MASS", "caret", "expm")) %dopar% {
   tryCatch({
   # Simulate data for each iteration
-  simul <- simulate_data_3(data_param, g_sim_3, case)
+  #simul <- simulate_data_3(data_param, g_sim_3, case)
+  simul <- simul_all[[n]]
   
   # Perform the J-optimality computation
   res <- J_opt_data_fixed(simul, J_bs, J_ns, p_train, x_evaluation,
