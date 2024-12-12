@@ -188,17 +188,21 @@ J_opt_data_fixed <- function(simul_data, J_CV_bs, J_CV_ns, p_train, x_evaluation
 
 
 
-#J_bs_ <- c(5, 7, 11, 19, 35)
-#J_ns_ <- c(3, 5, 9, 17, 33)
-#p = 0.5
-#x_eval = seq(-2, 2, length.out = 100)
-#deg = 3
-#n_boot = 10
-#simul <- simulate_data_3(c(1000, 0.5, 0.9), g_sim_3, 2)
-#test <- J_opt_data_fixed(simul, J_bs_, J_ns_, p, x_eval, deg, n_boot)
+J_bs_ <- c(5, 7, 11, 19, 35)
+J_ns_ <- c(3, 5, 9, 17, 33)
+p = 0.5
+x_eval = seq(-2, 2, length.out = 100)
+deg = 3
+n_boot = 10
+simul <- simulate_data_3(c(1000, 0.5, 0.9), g_sim_3, 2)
+
+load("data_2000_rhozw0.9_rhouv0.5_case2_n1000.R")
+
+test <- J_opt_data_fixed(simul, J_bs_, J_ns_, p, x_eval, deg, n_boot)
 
 
-
+simul_all[[2]]$W
+simul$W
 
 
 
