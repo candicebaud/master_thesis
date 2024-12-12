@@ -22,7 +22,7 @@ cl <- createCluster()
 registerDoParallel(cl)
 rhouv <- 0.5
 rhozw <- 0.9
-case <- 2
+case <- 3
 n_values <- 1000
 data_param = c(n_values, rhouv, rhozw)
 
@@ -34,19 +34,34 @@ J_ns <- c(3, 5, 9, 17, 33)
 p_train = 0.5
 n_boot = 100
 
-
 set.seed(47820)
 
 filename <- paste("data_", n_MC, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_values, ".R" ,sep = "")
 load(filename)
 
+indices_list <- seq(1, n_MC, by = 1)
+already_done <- integer(0)
+
+#check which things are already computed
+for (n in 1:n_MC){
+  filen <- paste("opt_", n_MC, "_degree", degree, "_ptrain", p_train, "_nboot", n_boot, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_values, "_simu", n, ".R" ,sep = "")
+  if (file.exists(filen)) {
+    # If the file exists, it means the simulation is already done
+    already_done <- c(already_done, n)
+  }
+  }
+
+new_indices_list <-  setdiff(indices_list, already_done)
+n_MC_new <- length(new_indices_list)
+
 # Parallelize the MC simulations
-results <-foreach(n = 1:n_MC, .packages = c("splines", "MASS", "caret", "expm")) %dopar% {
-  tryCatch({
+results <-foreach(i = 1:n_MC_new, .packages = c("splines", "MASS", "caret", "expm")) %dopar% {
+  n = new_indices_list[i]
+  
   # Simulate data for each iteration
   #simul <- simulate_data_3(data_param, g_sim_3, case)
   simul <- simul_all[[n]]
-  
+  tryCatch({
   # Perform the J-optimality computation
   res <- J_opt_data_fixed(simul, J_bs, J_ns, p_train, x_evaluation,
                           degree, n_boot)
@@ -69,6 +84,9 @@ results <-foreach(n = 1:n_MC, .packages = c("splines", "MASS", "caret", "expm"))
     g_hat_J_ns = res$list_g_hat_J_ns
   ) }, error = function(e) {
     # In case of error, return NULL or an empty list, so the iteration is skipped
+    filen <- paste("opt_", n_MC, "_degree", degree, "_ptrain", p_train, "_nboot", n_boot, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_values, "_simu", n, ".R" ,sep = "")
+    res <- NULL
+    save(res, file = filen)
     return(NULL)
   })
 }
@@ -81,49 +99,3 @@ stopCluster(cl)
 
 
 
-
-
-
-
-#source("/softs/R/createCluster.R")
-#cl <- createCluster()
-#registerDoParallel(cl)
-#N_values <- c(200) #pour commencer
-#Cases <- c(2, 3)
-#Rhouv_Rhozw <- list(c(0.5, 0.9), c(0.8, 0.9), c(0.8, 0.7))
-
-#set.seed(47820)
-
-#parameter_combinations <- expand.grid(
-#  N = N_values,
-#  Case = Cases,
-#  Rhouv_Rhozw = seq_along(Rhouv_Rhozw) # Use indices for combinations
-#)
-
-#degree = 3
-#x_evaluation = seq(-2, 2, length.out = 100)
-#n_MC = 50
-#J_bs <- c(5, 7, 11, 19, 35)
-#J_ns <- c(3, 5, 9, 17, 33)
-#p_train = 0.8
-#n_boot = 100
-
-#foreach (j=1:nrow(parameter_combinations))%dopar%{
-#  params <- parameter_combinations[j,]
-#  rhouv <- as.numeric(Rhouv_Rhozw[[params$Rhouv_Rhozw]][1])
-#  rhozw <- as.numeric(Rhouv_Rhozw[[params$Rhouv_Rhozw]][2])
-#  case <- as.numeric(params$Case)
-#  n_values <- as.numeric(params$N)
-#  data_param = c(n_values, rhouv, rhozw)
-  
-  #simulate data 
-#  simul <- simulate_data_3(data_param, g_sim_3, case)
-  
-  #compute the J_opt and return all the results
-#  res_opt <- MC_j_opt_parallelized(n_MC, data_param, case, J_bs, J_ns, p_train, x_evaluation, degree, n_boot)
-#  filename = paste("opt_2000", "_degree", degree, "_ptrain", p_train, "_nboot", n_boot, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_val, ".R" ,sep = "")
-#  save(res_opt,file=filename)
-  
-#}
-
-#stopCluster(cl)

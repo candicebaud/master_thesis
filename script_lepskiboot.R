@@ -81,18 +81,28 @@ T_stat_D <- function(x_grid, Y, Z, W, degree, create_P, I_hat, w_vector, list_M_
 
 
 compute_J_hat <- function(theta_star, I_hat, x_grid, degree,create_P, Z, list_g_hat_J, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x){
-  j_index = 1
-  J = I_hat[j_index]
-  ratio = calcul_ratio(J, j_index, I_hat, x_grid, degree, create_P, Z, list_g_hat_J, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
-  while ((ratio > 10*theta_star && j_index<= length(I_hat))){
-    j_index <- j_index + 1
-    if (j_index > length(I_hat)) break
-    J <- I_hat[j_index]
-    ratio <- calcul_ratio(J, j_index, I_hat, x_grid, degree, create_P, Z, 
-                          list_g_hat_J, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
+  #j_index = 1
+  #J = I_hat[j_index]
+  #ratio = calcul_ratio(J, j_index, I_hat, x_grid, degree, create_P, Z, list_g_hat_J, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
+  
+  vec_ratio <- numeric(length(I_hat))
+  for (j_index in 1:length(I_hat)){
+    vec_ratio[j_index] <- calcul_ratio(I_hat[j_index], j_index, I_hat, x_grid, degree, create_P, Z, 
+                                       list_g_hat_J, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
   }
   
-  rm(ratio)
+  threshold <- 10 * theta_star
+  J <- vector[which(vec_ratio > threshold)[1]]
+
+  # while ((ratio > 10*theta_star && j_index<= length(I_hat))){
+  #   j_index <- j_index + 1
+  #   if (j_index > length(I_hat)) break
+  #   J <- I_hat[j_index]
+  #   ratio <- calcul_ratio(J, j_index, I_hat, x_grid, degree, create_P, Z, 
+  #                         list_g_hat_J, matrix_sigma_all_j_all_x, matrix_sigma_all_j_j2_all_x)
+  # }
+  
+  rm(vec_ratio, treshold)
   gc()
   return(J)
 }

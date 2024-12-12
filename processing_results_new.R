@@ -45,7 +45,7 @@ missing_number <- function(n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_
   is_null <- sapply(all_data[[simu_name]], is.null)
   n_null <- sum(is_null) #first the buggs so it did not even run : so did not run for any method
   all_data[[simu_name]] <- all_data[[simu_name]][!is_null] #remove them
-  n_MC = length(all_data[[1]])
+  n_MC = length(all_data[[simu_name]])
   
   #gammas
   n_gamma_bs_5 <- n_null
@@ -61,7 +61,7 @@ missing_number <- function(n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_
   n_gamma_ns_33 <- n_null
   
   for (n in 1:n_MC){
-    list_gamma_bs <- all_data[[simu_name]][[n]]$gamma_bs
+    list_gamma_bs <- all_data[[simu_name]][[n]]$list_gamma_bs
     if (sum(list_gamma_bs[[1]])==0){
       n_gamma_bs_5 = n_gamma_bs_5 + 1
     }
@@ -78,7 +78,7 @@ missing_number <- function(n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_
       n_gamma_bs_35 = n_gamma_bs_35 +1 
     }
     
-    list_gamma_ns <- all_data[[simu_name]][[n]]$gamma_ns
+    list_gamma_ns <- all_data[[simu_name]][[n]]$list_gamma_ns
     if (sum(list_gamma_ns[[1]])==0){
       n_gamma_ns_3 = n_gamma_ns_3 + 1
     }
@@ -106,14 +106,35 @@ missing_number <- function(n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_
               n_gamma_ns_33 = n_gamma_ns_33))
 }
 
-create_list_to_analyze <- function(n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values){
+reshape_simul_all <- function(simul_all){
+  n_MC = length(simul_all)
+  n_values = length(simul_all[[1]]$Y)
+  simul_all_sorted <- list(length=3)
+  for (i in 1:2){
+    simul_all_sorted$Y <- matrix(0, n_MC, n_values)
+    simul_all_sorted$W <- matrix(0, n_MC, n_values)
+  }
+  for (n in 1:n_MC){
+    simul_all_sorted$Y[n, ] <- simul_all[[n]]$Y
+    simul_all_sorted$W[n, ] <- simul_all[[n]]$W 
+  }
+  return(simul_all_sorted)
+}
+
+
+
+create_list_to_analyze <- function(n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values, simul_all){
   simu_name = paste("opt_", n_MC , "_degree", degree, "_ptrain", p_train, "_nboot",
                     n_boot, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case,
                     "_n", n_values ,sep = "") 
   is_null <- sapply(all_data[[simu_name]], is.null) #length 2000 attention, faudra garder les indices et checker avec la data
   all_data[[simu_name]] <- all_data[[simu_name]][!is_null]
   
-  n_MC = length(all_data[[1]])
+  #simul_all
+  simul_all <- simul_all[!is_null]
+  simul_all_reshaped <- reshape_simul_all(simul_all)
+  
+  n_MC = length(all_data[[simu_name]])
   
   all_lists <- list()
   all_lists$list_J_opt_CV_M_bs <- numeric(length = n_MC)
@@ -128,8 +149,10 @@ create_list_to_analyze <- function(n_MC, degree, p_train, n_boot, rhozw, rhouv, 
   all_lists$list_gamma_ns <-  vector('list', length = n_MC)
   all_lists$list_g_hat_J_bs <- vector('list', length = n_MC)
   all_lists$list_g_hat_J_ns <-  vector('list', length = n_MC)
-  #all_lists$matrix_W <-  matrix(0, nrow = n_MC, ncol = n_values)
-  #all_lists$matrix_Y <-  matrix(0, nrow = n_MC, ncol = n_values)
+  all_lists$list_matrix_g_hat_J_bs <- vector("list", length = 5)
+  all_lists$list_matrix_g_hat_J_ns <- vector("list", length = 5)
+  all_lists$matrix_W <- simul_all_reshaped$W
+  all_lists$matrix_Y <-  simul_all_reshaped$Y
   #all_lists$matrix_Z <-  matrix(0, nrow = n_MC, ncol = n_values)
   
   for (n in 1:n_MC){
@@ -141,13 +164,19 @@ create_list_to_analyze <- function(n_MC, degree, p_train, n_boot, rhozw, rhouv, 
     all_lists$list_J_opt_lepski_ns[n] <- all_data[[simu_name]][[n]]$J_opt_lepski_ns
     all_lists$list_J_opt_lepskiboot_bs[n] <- all_data[[simu_name]][[n]]$J_opt_lepskiboot_bs
     all_lists$list_J_opt_lepskiboot_ns[n] <- all_data[[simu_name]][[n]]$J_opt_lepskiboot_ns
-    all_lists$list_gamma_bs[[n]] <- all_data[[simu_name]][[n]]$gamma_bs
-    all_lists$list_gamma_ns[[n]] <- all_data[[simu_name]][[n]]$gamma_ns
-    all_lists$list_g_hat_J_bs[[n]] <- all_data[[simu_name]][[n]]$g_hat_J_bs
-    all_lists$list_g_hat_J_ns[[n]] <- all_data[[simu_name]][[n]]$g_hat_J_ns
-    #all_lists$matrix_W[n,] <- all_data[[simu_name]][[n]]$W
-    #all_lists$matrix_Y[n,] <- all_data[[simu_name]][[n]]$Y
-    #all_lists$matrix_Z[n,] <- all_data[[simu_name]][[n]]$Z
+    all_lists$list_gamma_bs[[n]] <- all_data[[simu_name]][[n]]$list_gamma_bs
+    all_lists$list_gamma_ns[[n]] <- all_data[[simu_name]][[n]]$list_gamma_ns
+    all_lists$list_g_hat_J_bs[[n]] <- all_data[[simu_name]][[n]]$list_g_hat_J_bs
+    all_lists$list_g_hat_J_ns[[n]] <- all_data[[simu_name]][[n]]$list_g_hat_J_ns
+  }
+  
+  for (i in 1:5){
+    all_lists$list_matrix_g_hat_J_bs[[i]] <- matrix(0, nrow = n_MC, ncol = n_eval)
+    all_lists$list_matrix_g_hat_J_ns[[i]] <- matrix(0, nrow = n_MC, ncol = n_eval)
+    for (n in 1:n_MC){
+      all_lists$list_matrix_g_hat_J_bs[[i]][n,] <- all_data[[simu_name]][[n]]$list_g_hat_J_bs[[i]]
+      all_lists$list_matrix_g_hat_J_ns[[i]][n, ] <- all_data[[simu_name]][[n]]$list_g_hat_J_ns[[i]]
+      }
   }
   
   # create the lists for each method of values on x_eval obtained
@@ -217,16 +246,16 @@ filter_res <- function(res_to_analyze){
   if (n_CVM_bs>0){
     res_CVM_bs$list_J_opt_CV_M_bs <- res_to_analyze$list_J_opt_CV_M_bs[-zero_indices]
     res_CVM_bs$list_est_values_CV_M_bs <- res_to_analyze$list_est_values_CV_M_bs[-zero_indices,]
-    #res_CVM_bs$matrix_W <- res_to_analyze$matrix_W[-zero_indices,]
-    #res_CVM_bs$matrix_Z <- res_to_analyze$matrix_Z[-zero_indices,]
-    #res_CVM_bs$matrix_Y <- res_to_analyze$matrix_Y[-zero_indices,]
+    # res_CVM_bs$matrix_W <- res_to_analyze$matrix_W[-zero_indices,]
+    # res_CVM_bs$matrix_Z <- res_to_analyze$matrix_Z[-zero_indices,]
+    # res_CVM_bs$matrix_Y <- res_to_analyze$matrix_Y[-zero_indices,]
     }
   else{
     res_CVM_bs$list_J_opt_CV_M_bs <- res_to_analyze$list_J_opt_CV_M_bs
     res_CVM_bs$list_est_values_CV_M_bs <- res_to_analyze$list_est_values_CV_M_bs
-    #res_CVM_bs$matrix_W <- res_to_analyze$matrix_W
-    #res_CVM_bs$matrix_Z <- res_to_analyze$matrix_Z
-    #res_CVM_bs$matrix_Y <- res_to_analyze$matrix_Y
+    # res_CVM_bs$matrix_W <- res_to_analyze$matrix_W
+    # res_CVM_bs$matrix_Z <- res_to_analyze$matrix_Z
+    # res_CVM_bs$matrix_Y <- res_to_analyze$matrix_Y
   }
   
   #CVM ns
@@ -236,16 +265,16 @@ filter_res <- function(res_to_analyze){
   if (n_CVM_ns>0){
     res_CVM_ns$list_J_opt_CV_M_ns <- res_to_analyze$list_J_opt_CV_M_ns[-zero_indices]
     res_CVM_ns$list_est_values_CV_M_ns <- res_to_analyze$list_est_values_CV_M_ns[-zero_indices,]
-    #res_CVM_ns$matrix_W <- res_to_analyze$matrix_W[-zero_indices,]
-    #res_CVM_ns$matrix_Z <- res_to_analyze$matrix_Z[-zero_indices,]
-    #res_CVM_ns$matrix_Y <- res_to_analyze$matrix_Y[-zero_indices,]
+    res_CVM_ns$matrix_W <- res_to_analyze$matrix_W[-zero_indices,]
+    res_CVM_ns$matrix_Z <- res_to_analyze$matrix_Z[-zero_indices,]
+    res_CVM_ns$matrix_Y <- res_to_analyze$matrix_Y[-zero_indices,]
     }
   else{
     res_CVM_ns$list_J_opt_CV_M_ns <- res_to_analyze$list_J_opt_CV_M_ns
     res_CVM_ns$list_est_values_CV_M_ns <- res_to_analyze$list_est_values_CV_M_ns
-    #res_CVM_ns$matrix_W <- res_to_analyze$matrix_W
-    #res_CVM_ns$matrix_Z <- res_to_analyze$matrix_Z
-    #res_CVM_ns$matrix_Y <- res_to_analyze$matrix_Y
+    res_CVM_ns$matrix_W <- res_to_analyze$matrix_W
+    res_CVM_ns$matrix_Z <- res_to_analyze$matrix_Z
+    res_CVM_ns$matrix_Y <- res_to_analyze$matrix_Y
   }
   
   #CVMSE bs
@@ -255,16 +284,16 @@ filter_res <- function(res_to_analyze){
   if (n_CVMSE_bs>0){
     res_CVMSE_bs$list_J_opt_CVMSE_bs <- res_to_analyze$list_J_opt_CVMSE_bs[-zero_indices]
     res_CVMSE_bs$list_est_values_CVMSE_bs <- res_to_analyze$list_est_values_CVMSE_bs[-zero_indices,]
-    #res_CVMSE_bs$matrix_W <- res_to_analyze$matrix_W[-zero_indices,]
-    #res_CVMSE_bs$matrix_Z <- res_to_analyze$matrix_Z[-zero_indices,]
-    #res_CVMSE_bs$matrix_Y <- res_to_analyze$matrix_Y[-zero_indices,]
+    res_CVMSE_bs$matrix_W <- res_to_analyze$matrix_W[-zero_indices,]
+    res_CVMSE_bs$matrix_Z <- res_to_analyze$matrix_Z[-zero_indices,]
+    res_CVMSE_bs$matrix_Y <- res_to_analyze$matrix_Y[-zero_indices,]
     }
   else{
     res_CVMSE_bs$list_J_opt_CVMSE_bs <- res_to_analyze$list_J_opt_CVMSE_bs
     res_CVMSE_bs$list_est_values_CVMSE_bs <- res_to_analyze$list_est_values_CVMSE_bs
-    #res_CVMSE_bs$matrix_W <- res_to_analyze$matrix_W
-    #res_CVMSE_bs$matrix_Z <- res_to_analyze$matrix_Z
-    #res_CVMSE_bs$matrix_Y <- res_to_analyze$matrix_Y
+    res_CVMSE_bs$matrix_W <- res_to_analyze$matrix_W
+    res_CVMSE_bs$matrix_Z <- res_to_analyze$matrix_Z
+    res_CVMSE_bs$matrix_Y <- res_to_analyze$matrix_Y
   }
   
   #CVMSE ns
@@ -274,16 +303,16 @@ filter_res <- function(res_to_analyze){
   if (n_CVMSE_ns>0){
     res_CVMSE_ns$list_J_opt_CVMSE_ns <- res_to_analyze$list_J_opt_CVMSE_ns[-zero_indices]
     res_CVMSE_ns$list_est_values_CVMSE_ns <- res_to_analyze$list_est_values_CVMSE_ns[-zero_indices,]
-    #res_CVMSE_ns$matrix_W <- res_to_analyze$matrix_W[-zero_indices,]
-    #res_CVMSE_ns$matrix_Z <- res_to_analyze$matrix_Z[-zero_indices,]
-    #res_CVMSE_ns$matrix_Y <- res_to_analyze$matrix_Y[-zero_indices,]
+    res_CVMSE_ns$matrix_W <- res_to_analyze$matrix_W[-zero_indices,]
+    res_CVMSE_ns$matrix_Z <- res_to_analyze$matrix_Z[-zero_indices,]
+    res_CVMSE_ns$matrix_Y <- res_to_analyze$matrix_Y[-zero_indices,]
     }
   else{
     res_CVMSE_ns$list_J_opt_CVMSE_ns <- res_to_analyze$list_J_opt_CVMSE_ns
     res_CVMSE_ns$list_est_values_CVMSE_ns <- res_to_analyze$list_est_values_CVMSE_ns
-    # res_CVMSE_ns$matrix_W <- res_to_analyze$matrix_W
-    # res_CVMSE_ns$matrix_Z <- res_to_analyze$matrix_Z
-    # res_CVMSE_ns$matrix_Y <- res_to_analyze$matrix_Y
+    res_CVMSE_ns$matrix_W <- res_to_analyze$matrix_W
+    res_CVMSE_ns$matrix_Z <- res_to_analyze$matrix_Z
+    res_CVMSE_ns$matrix_Y <- res_to_analyze$matrix_Y
     }
   
   #lepski bs
@@ -293,16 +322,16 @@ filter_res <- function(res_to_analyze){
   if (n_lepski_bs>0){
     res_lepski_bs$list_J_opt_lepski_bs <- res_to_analyze$list_J_opt_lepski_bs[-zero_indices]
     res_lepski_bs$list_est_values_lepski_bs <- res_to_analyze$list_est_values_lepski_bs[-zero_indices,]
-    # res_lepski_bs$matrix_W <- res_to_analyze$matrix_W[-zero_indices,]
-    # res_lepski_bs$matrix_Z <- res_to_analyze$matrix_Z[-zero_indices,]
-    # res_lepski_bs$matrix_Y <- res_to_analyze$matrix_Y[-zero_indices,]
+    res_lepski_bs$matrix_W <- res_to_analyze$matrix_W[-zero_indices,]
+    res_lepski_bs$matrix_Z <- res_to_analyze$matrix_Z[-zero_indices,]
+    res_lepski_bs$matrix_Y <- res_to_analyze$matrix_Y[-zero_indices,]
     }
   else{
     res_lepski_bs$list_J_opt_lepski_bs <- res_to_analyze$list_J_opt_lepski_bs
     res_lepski_bs$list_est_values_lepski_bs <- res_to_analyze$list_est_values_lepski_bs
-    # res_lepski_bs$matrix_W <- res_to_analyze$matrix_W
-    # res_lepski_bs$matrix_Z <- res_to_analyze$matrix_Z
-    # res_lepski_bs$matrix_Y <- res_to_analyze$matrix_Y
+    res_lepski_bs$matrix_W <- res_to_analyze$matrix_W
+    res_lepski_bs$matrix_Z <- res_to_analyze$matrix_Z
+    res_lepski_bs$matrix_Y <- res_to_analyze$matrix_Y
     }
 
   #lepski ns
@@ -312,16 +341,16 @@ filter_res <- function(res_to_analyze){
   if (n_lepski_ns>0){
     res_lepski_ns$list_J_opt_lepski_ns <- res_to_analyze$list_J_opt_lepski_ns[-zero_indices]
     res_lepski_ns$list_est_values_lepski_ns <- res_to_analyze$list_est_values_lepski_ns[-zero_indices,]
-    # res_lepski_ns$matrix_W <- res_to_analyze$matrix_W[-zero_indices,]
-    # res_lepski_ns$matrix_Z <- res_to_analyze$matrix_Z[-zero_indices,]
-    # res_lepski_ns$matrix_Y <- res_to_analyze$matrix_Y[-zero_indices,]
+    res_lepski_ns$matrix_W <- res_to_analyze$matrix_W[-zero_indices,]
+    res_lepski_ns$matrix_Z <- res_to_analyze$matrix_Z[-zero_indices,]
+    res_lepski_ns$matrix_Y <- res_to_analyze$matrix_Y[-zero_indices,]
     }
   else{
     res_lepski_ns$list_J_opt_lepski_ns <- res_to_analyze$list_J_opt_lepski_ns
     res_lepski_ns$list_est_values_lepski_ns <- res_to_analyze$list_est_values_lepski_ns
-    # res_lepski_ns$matrix_W <- res_to_analyze$matrix_W
-    # res_lepski_ns$matrix_Z <- res_to_analyze$matrix_Z
-    # res_lepski_ns$matrix_Y <- res_to_analyze$matrix_Y
+    res_lepski_ns$matrix_W <- res_to_analyze$matrix_W
+    res_lepski_ns$matrix_Z <- res_to_analyze$matrix_Z
+    res_lepski_ns$matrix_Y <- res_to_analyze$matrix_Y
     }  
   
   #lepskiboot bs
@@ -331,16 +360,16 @@ filter_res <- function(res_to_analyze){
   if (n_lepskiboot_bs>0){
     res_lepskiboot_bs$list_J_opt_lepskiboot_bs <- res_to_analyze$list_J_opt_lepskiboot_bs[-zero_indices]
     res_lepskiboot_bs$list_est_values_lepskiboot_bs <- res_to_analyze$list_est_values_lepskiboot_bs[-zero_indices,]
-    # res_lepskiboot_bs$matrix_W <- res_to_analyze$matrix_W[-zero_indices,]
-    # res_lepskiboot_bs$matrix_Z <- res_to_analyze$matrix_Z[-zero_indices,]
-    # res_lepskiboot_bs$matrix_Y <- res_to_analyze$matrix_Y[-zero_indices,]
+    res_lepskiboot_bs$matrix_W <- res_to_analyze$matrix_W[-zero_indices,]
+    res_lepskiboot_bs$matrix_Z <- res_to_analyze$matrix_Z[-zero_indices,]
+    res_lepskiboot_bs$matrix_Y <- res_to_analyze$matrix_Y[-zero_indices,]
     }
   else{
     res_lepskiboot_bs$list_J_opt_lepskiboot_bs <- res_to_analyze$list_J_opt_lepskiboot_bs
     res_lepskiboot_bs$list_est_values_lepskiboot_bs <- res_to_analyze$list_est_values_lepskiboot_bs
-    # res_lepskiboot_bs$matrix_W <- res_to_analyze$matrix_W
-    # res_lepskiboot_bs$matrix_Z <- res_to_analyze$matrix_Z
-    # res_lepskiboot_bs$matrix_Y <- res_to_analyze$matrix_Y
+    res_lepskiboot_bs$matrix_W <- res_to_analyze$matrix_W
+    res_lepskiboot_bs$matrix_Z <- res_to_analyze$matrix_Z
+    res_lepskiboot_bs$matrix_Y <- res_to_analyze$matrix_Y
     }
   
   #lepskiboot ns
@@ -350,16 +379,16 @@ filter_res <- function(res_to_analyze){
   if (n_lepskiboot_ns>0){
     res_lepskiboot_ns$list_J_opt_lepskiboot_ns <- res_to_analyze$list_J_opt_lepskiboot_ns[-zero_indices]
     res_lepskiboot_ns$list_est_values_lepskiboot_ns <- res_to_analyze$list_est_values_lepskiboot_ns[-zero_indices,]
-    # res_lepskiboot_ns$matrix_W <- res_to_analyze$matrix_W[-zero_indices,]
-    # res_lepskiboot_ns$matrix_Z <- res_to_analyze$matrix_Z[-zero_indices,]
-    # res_lepskiboot_ns$matrix_Y <- res_to_analyze$matrix_Y[-zero_indices,]
+    res_lepskiboot_ns$matrix_W <- res_to_analyze$matrix_W[-zero_indices,]
+    res_lepskiboot_ns$matrix_Z <- res_to_analyze$matrix_Z[-zero_indices,]
+    res_lepskiboot_ns$matrix_Y <- res_to_analyze$matrix_Y[-zero_indices,]
     }
   else{
     res_lepskiboot_ns$list_J_opt_lepskiboot_ns <- res_to_analyze$list_J_opt_lepskiboot_ns
     res_lepskiboot_ns$list_est_values_lepskiboot_ns <- res_to_analyze$list_est_values_lepskiboot_ns
-    # res_lepskiboot_ns$matrix_W <- res_to_analyze$matrix_W
-    # res_lepskiboot_ns$matrix_Z <- res_to_analyze$matrix_Z
-    # res_lepskiboot_ns$matrix_Y <- res_to_analyze$matrix_Y
+    res_lepskiboot_ns$matrix_W <- res_to_analyze$matrix_W
+    res_lepskiboot_ns$matrix_Z <- res_to_analyze$matrix_Z
+    res_lepskiboot_ns$matrix_Y <- res_to_analyze$matrix_Y
     }
   
   return(list(res_CVM_bs = res_CVM_bs, res_CVM_ns = res_CVM_ns,
@@ -371,6 +400,20 @@ filter_res <- function(res_to_analyze){
               n_lepskiboot_bs = n_lepskiboot_bs, n_lepskiboot_ns = n_lepskiboot_ns
               ))
   
+}
+
+
+
+
+
+filter_matrix_pred <- function(matrix_pred) {
+  # Check which rows have a sum not equal to 0
+  non_zero_rows <- apply(matrix_pred, 1, function(row) sum(row) != 0)
+  
+  # Subset the matrix to include only the non-zero rows
+  new_matrix <- matrix_pred[non_zero_rows, , drop = FALSE]
+  
+  return(new_matrix)
 }
 
 
@@ -416,14 +459,14 @@ compute_all_perf <- function(mat_g_hat_on_x, g_0_on_x, data_algo){
 
   #M A TESTER
   M_vect <- rep(0, n_MC)
-  #matrix_Y <- data_algo$matrix_Y
-  #matrix_Z <- data_algo$matrix_Z
-  #matrix_W <- data_algo$matrix_W
-  #for (n in 1:n_MC){
-  #  Omega <- create_W(matrix_W[n,])
-  #  M_vect[n] <- calcul_M_g_hat_test_sample(mat_g_hat_on_x[n,], Omega, n_eval, matrix_Y[n,])
-  #}
-  M = 0
+  matrix_Y <- data_algo$matrix_Y
+  matrix_Z <- data_algo$matrix_Z
+  matrix_W <- data_algo$matrix_W
+  for (n in 1:n_MC){
+    Omega <- create_W(matrix_W[n,])
+    M_vect[n] <- calcul_M_g_hat_test_sample(mat_g_hat_on_x[n,], Omega, n_eval, matrix_Y[n,])
+  }
+  M = mean(M_vect)
   #list(MSE = MSE, var = var, bias = bias, supnorm = sup_norm, M = M)
   return(c(M, sup_norm, MSE, bias, var))
 }
@@ -447,242 +490,125 @@ compute_perf <- function(res_filtered, g_0_on_x){
 }
 
 
-#### ici pas fini : il faut avant de faire les perf omettre les valeurs quand gamma = 0####
-compute_perf_J_sub <- function(g_eval, g_on_x, avg){
+#perf J
+compute_perf_J_sub <- function(g_eval, g_on_x, avg){#rajouter le Y et le W
   MSE = mean((g_eval - g_on_x)^{2})
   var = mean((g_eval - avg)^{2})
   bias = mean((g_on_x - avg)^{2})
   sup_norm = max(abs(g_eval - g_on_x))
-  M = 0 # TO DO
+  M = 0 # TO DO à réfléchir comment récupérer les données : 
   
   return(c(M, sup_norm, MSE, bias, var))
 }
 
+compute_perf_J <- function(value_bs_all_J, value_ns_all_J, g_on_x){
+  to_return <- list()
 
-compute_perf_J <- function(res, g_on_x){
-  #filtrer ici par rapport aux cas gamma = 0 
-  n_simu = length(res$list_gamma_bs)
-
-  #trouver la taille de matrice pour chaque cas 
-  index_5_bs <- numeric()
-  index_7_bs <- numeric()
-  index_11_bs <- numeric()
-  index_19_bs <- numeric()
-  index_35_bs <- numeric()
-  
-  for (n in 1:n_simu){
-    gamma_bs_5 <- res$list_gamma_bs[[n]][[1]]
-    gamma_bs_7 <- res$list_gamma_bs[[n]][[2]]
-    gamma_bs_11 <- res$list_gamma_bs[[n]][[3]]
-    gamma_bs_19 <- res$list_gamma_bs[[n]][[4]]
-    gamma_bs_35 <- res$list_gamma_bs[[n]][[5]]
-    
-    if (sum(gamma_bs_5)!=0){
-      index_5_bs = append(index_5_bs, n)
-    }
-    if (sum(gamma_bs_7)!=0){
-      index_7_bs = append(index_7_bs, n)
-    }
-    if (sum(gamma_bs_11)!=0){
-      index_11_bs = append(index_11_bs, n)
-    }
-    if (sum(gamma_bs_19)!=0){
-      index_19_bs = append(index_19_bs, n)
-    }
-    if (sum(gamma_bs_35)!=0){
-      index_35_bs = append(index_35_bs, n)
-    }}
-  
-  index_3_ns <- numeric()
-  index_5_ns <- numeric()
-  index_9_ns <- numeric()
-  index_17_ns <- numeric()
-  index_33_ns <- numeric()
-  
-  for (n in 1:n_simu){
-    gamma_ns_3 <- res$list_gamma_ns[[n]][[1]]
-    gamma_ns_5 <- res$list_gamma_ns[[n]][[2]]
-    gamma_ns_9 <- res$list_gamma_ns[[n]][[3]]
-    gamma_ns_17 <- res$list_gamma_ns[[n]][[4]]
-    gamma_ns_33 <- res$list_gamma_ns[[n]][[5]]
-    
-    if (sum(gamma_ns_3)!=0){
-      index_3_ns = append(index_3_ns, n)
-    }
-    if (sum(gamma_ns_5)!=0){
-      index_5_ns = append(index_5_ns, n)
-    }
-    if (sum(gamma_ns_9)!=0){
-      index_9_ns = append(index_9_ns, n)
-    }
-    if (sum(gamma_ns_17)!=0){
-      index_17_ns = append(index_17_ns, n)
-    }
-    if (sum(gamma_ns_33)!=0){
-      index_33_ns = append(index_33_ns, n)
-    }}
-  
-  
-  perf_5_bs <- matrix(0, length(index_5_bs), 5)
-  perf_7_bs <- matrix(0, length(index_7_bs), 5)
-  perf_11_bs <- matrix(0, length(index_11_bs), 5)
-  perf_19_bs <- matrix(0, length(index_19_bs), 5)
-  perf_35_bs <- matrix(0, length(index_35_bs), 5)
-  
-  perf_3_ns <- matrix(0, length(index_3_ns), 5)
-  perf_5_ns <- matrix(0, length(index_5_ns), 5)
-  perf_9_ns <- matrix(0, length(index_9_ns), 5)
-  perf_17_ns <- matrix(0, length(index_17_ns), 5)
-  perf_33_ns <- matrix(0, length(index_33_ns), 5)
-  
-  avg_5_bs <- compute_avg_sub(index_5_bs, res, 1, 1)
-  avg_7_bs <- compute_avg_sub(index_7_bs, res, 1, 2)
-  avg_11_bs <- compute_avg_sub(index_11_bs, res, 1, 3)
-  avg_19_bs <- compute_avg_sub(index_19_bs, res, 1, 4)
-  avg_35_bs <- compute_avg_sub(index_35_bs, res, 1, 5)
-  
-  avg_3_ns <- compute_avg_sub(index_3_ns, res, 0, 1)
-  avg_5_ns <- compute_avg_sub(index_5_ns, res, 0, 2)
-  avg_9_ns <- compute_avg_sub(index_9_ns, res, 0, 3)
-  avg_17_ns <- compute_avg_sub(index_17_ns, res, 0, 4)
-  avg_33_ns <- compute_avg_sub(index_33_ns, res, 0, 5)  
-  
-  
-  perf_5_bs <- compute_perf_J_sub_sub(index_5_bs, perf_5_bs, res, 1, 1, avg_5_bs, g_on_x)
-  perf_7_bs <- compute_perf_J_sub_sub(index_7_bs, perf_7_bs, res, 1, 2, avg_7_bs, g_on_x)
-  perf_11_bs <- compute_perf_J_sub_sub(index_11_bs, perf_11_bs, res, 1, 3, avg_11_bs, g_on_x)
-  perf_19_bs <- compute_perf_J_sub_sub(index_19_bs, perf_19_bs, res, 1, 4, avg_19_bs, g_on_x)
-  perf_35_bs <- compute_perf_J_sub_sub(index_35_bs, perf_35_bs, res, 1, 5, avg_35_bs, g_on_x)
-  
-  perf_3_ns <- compute_perf_J_sub_sub(index_3_ns, perf_3_ns, res, 0, 1, avg_3_ns, g_on_x)
-  perf_5_ns <- compute_perf_J_sub_sub(index_5_ns, perf_5_ns, res, 0, 2, avg_5_ns, g_on_x)
-  perf_9_ns <- compute_perf_J_sub_sub(index_9_ns, perf_9_ns, res, 0, 3, avg_9_ns, g_on_x)
-  perf_17_ns <- compute_perf_J_sub_sub(index_17_ns, perf_17_ns, res, 0, 4, avg_17_ns, g_on_x)
-  perf_33_ns <- compute_perf_J_sub_sub(index_33_ns, perf_33_ns, res, 0, 5, avg_33_ns, g_on_x)
-  
-    
-  return(list(avg_perf_5_bs = colMeans(perf_5_bs),
-              avg_perf_7_bs = colMeans(perf_7_bs),
-              avg_perf_11_bs = colMeans(perf_11_bs),
-              avg_perf_19_bs = colMeans(perf_19_bs),
-              avg_perf_35_bs = colMeans(perf_35_bs),
-              avg_perf_3_ns = colMeans(perf_3_ns),
-              avg_perf_5_ns = colMeans(perf_5_ns),
-              avg_perf_9_ns = colMeans(perf_9_ns),
-              avg_perf_17_ns = colMeans(perf_17_ns),
-              avg_perf_33_ns = colMeans(perf_33_ns)))
-}
-
-
-compute_avg_sub <- function(index_vector, res, bs_bool, num_gamma){
-  avg <- rep(0, length = 100)
-  if (length(index_vector)>0){
-    for (n in 1:length(index_vector)){
-      index = index_vector[n]
-      #print(index)
-      if (bs_bool == 1){
-        g_bs <- res$list_g_hat_J_bs[[index]]
-        for (x in 1:100){
-          avg[x] = avg[x] + g_bs[[num_gamma]][x] 
-        }}
-      else{
-        g_ns <- res$list_g_hat_J_ns[[index]]
-        for (x in 1:100){
-          avg[x] = avg[x] + g_ns[[num_gamma]][x] 
-        }}}
-    return(avg)}
-  else{
-    return(rep(0, 100))
-  }
-  }
-    
-
-compute_perf_J_sub_sub <- function(index_vector, matrix, res, bs_bool, num_gamma, avg_vect, g_on_x){
-  if (length(index_vector)>0){
-    for (n in 1:length(index_vector)){
-      index = index_vector[n]
-      if (bs_bool == 1){
-        g_bs <- res$list_g_hat_J_bs[[index]] #iteration n 
-        matrix[n,] <- compute_perf_J_sub(g_bs[[num_gamma]], g_on_x, avg_vect)
+  for (i in 1:5){
+    matrix_eval <- value_bs_all_J[[i]]
+    n_row = nrow(matrix_eval)
+    if (n_row > 0){
+      avg <- colMeans(matrix_eval)
+      matrix_perf <- matrix(0, nrow = n_row, ncol = 5)
+      for (n in 1:n_row){
+        matrix_perf[n,] <- compute_perf_J_sub(matrix_eval[n,], g_on_x, avg)
       }
-      else{
-        g_ns <- res$list_g_hat_J_ns[[index]]
-        matrix[n,] <- compute_perf_J_sub(g_ns[[num_gamma]], g_on_x, avg_vect)
-      }}
-    return(matrix)}
-  else{
-    return(matrix(999, 2, 5))
-  }
-}
-  
-#calcul des avg
-# avg_5_bs <- rep(0, length = 100)
-# avg_7_bs <- rep(0, length = 100)
-# avg_11_bs <- rep(0, length = 100)
-# avg_19_bs <- rep(0, length = 100)
-# avg_35_bs <- rep(0, length = 100)
-# 
-# avg_3_ns <- rep(0, length = 100)
-# avg_5_ns <- rep(0, length = 100)
-# avg_9_ns <- rep(0, length = 100)
-# avg_17_ns <- rep(0, length = 100)
-# avg_33_ns <- rep(0, length = 100)
-  
-  
-  # for (n in 1:n_MC){
-  #   g_bs <- res$list_g_hat_J_bs[[n]] 
-  #   g_ns <- res$list_g_hat_J_ns[[n]]
-  #   for (x in 1:100){
-  #     avg_5_bs[x] = avg_5_bs[x] + g_bs[[1]][x] 
-  #     avg_7_bs[x] = avg_7_bs[x] + g_bs[[2]][x]
-  #     avg_11_bs[x] = avg_11_bs[x] + g_bs[[3]][x]
-  #     avg_19_bs[x] = avg_19_bs[x] + g_bs[[4]][x]
-  #     avg_35_bs[x] = avg_35_bs[x] + g_bs[[5]][x]
-  #     
-  #     avg_3_ns[x] = avg_3_ns[x] + g_ns[[1]][x] 
-  #     avg_5_ns[x] = avg_5_ns[x] + g_ns[[2]][x]
-  #     avg_9_ns[x] = avg_9_ns[x] + g_ns[[3]][x]
-  #     avg_17_ns[x] = avg_17_ns[x] + g_ns[[4]][x]
-  #     avg_33_ns[x] = avg_33_ns[x] + g_ns[[5]][x]}
-  # }
+      perf <- colMeans(matrix_perf)
+      }
+    else{
+      perf <- rep(999, 5)
+    }
+    if (i == 1){
+      to_return$avg_perf_5_bs <- perf
+    }
+    if (i == 2){
+      to_return$avg_perf_7_bs <- perf
+    }
+    if (i == 3){
+      to_return$avg_perf_11_bs <- perf
+    }
+    if (i == 4){
+      to_return$avg_perf_19_bs <- perf
+    }
+    if (i == 5){
+      to_return$avg_perf_35_bs <- perf
+    }}
 
-  # for (n in 1:n_MC){
-  #   g_bs <- res$list_g_hat_J_bs[[n]] #iteration n 
-  #   perf_5_bs[n,] <- compute_perf_J_sub(g_bs[[1]], g_on_x, avg_5_bs)
-  #   perf_7_bs[n,] <- compute_perf_J_sub(g_bs[[2]], g_on_x, avg_7_bs)
-  #   perf_11_bs[n,] <- compute_perf_J_sub(g_bs[[3]], g_on_x, avg_11_bs)
-  #   perf_19_bs[n,] <- compute_perf_J_sub(g_bs[[4]], g_on_x, avg_19_bs)
-  #   perf_35_bs[n,] <- compute_perf_J_sub(g_bs[[5]], g_on_x, avg_35_bs)
-  #   
-  #   g_ns <- res$list_g_hat_J_ns[[n]]
-  #   perf_3_ns[n,] <- compute_perf_J_sub(g_ns[[1]], g_on_x, avg_3_ns)
-  #   perf_5_ns[n,] <- compute_perf_J_sub(g_ns[[2]], g_on_x, avg_5_ns)
-  #   perf_9_ns[n,] <- compute_perf_J_sub(g_ns[[3]], g_on_x, avg_9_ns)
-  #   perf_17_ns[n,] <- compute_perf_J_sub(g_ns[[4]], g_on_x, avg_17_ns)
-  #   perf_33_ns[n,] <- compute_perf_J_sub(g_ns[[5]], g_on_x, avg_33_ns)
-  # }
+  for (i in 1:5){
+    matrix_eval <- value_ns_all_J[[i]]
+    n_row = nrow(matrix_eval)
+    if (n_row > 0){
+      avg <- colMeans(matrix_eval)
+      matrix_perf <- matrix(0, nrow = n_row, ncol = 5)
+      for (n in 1:n_row){
+        matrix_perf[n,] <- compute_perf_J_sub(matrix_eval[n,], g_on_x, avg)
+      }
+      perf <- colMeans(matrix_perf)
+    }
+    else{
+      perf <- rep(999, 5)
+    }
+    if (i == 1){
+      to_return$avg_perf_3_ns <- perf
+    }
+    if (i == 2){
+      to_return$avg_perf_5_ns <- perf
+    }
+    if (i == 3){
+      to_return$avg_perf_9_ns <- perf
+    }
+    if (i == 4){
+      to_return$avg_perf_17_ns <- perf
+    }
+    if (i == 5){
+      to_return$avg_perf_33_ns <- perf
+    }}
   
+  return(to_return)
   
+  # return(list(avg_perf_5_bs = avg_perf_5_bs, avg_perf_7_bs = avg_perf_7_bs,
+  #             avg_perf_11_bs = avg_perf_11_bs, avg_perf_19_bs = avg_perf_19_bs,
+  #             avg_perf_35_bs = avg_perf_35_bs,
+  #             avg_perf_3_ns = avg_perf_3_ns, avg_perf_5_ns = avg_perf_5_ns,
+  #             avg_perf_9_ns = avg_perf_9_ns, avg_perf_17_ns = avg_perf_17_ns, 
+  #             avg_perf_33_ns = avg_perf_33_ns))
+
+}
 
 
 
 
 #### Data process tout d'un coup ####
 create_df_measures <- function(n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values, g_on_x){
+  #load simulation data 
+  data_name = paste("data_", n_MC, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_values, ".R" ,sep = "")
+  simul_all <- get(load(data_name))
+  
   #missing data 
   missing_iter <- missing_number(n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values)
   n_null = missing_iter$n_null #not even computed
   
-  
   #algorithms, filter 
-  res_1 <- create_list_to_analyze(n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values)
+  res_1 <- create_list_to_analyze(n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values, simul_all)
   res_1_filter <- filter_res(res_1)
+  
+  values_bs_allJ = res_1$list_matrix_g_hat_J_bs
+  values_ns_allJ = res_1$list_matrix_g_hat_J_ns
+  
+  for (i in 1:5){
+    values_bs_allJ[[i]] <- filter_matrix_pred(values_bs_allJ[[i]])
+    values_ns_allJ[[i]] <- filter_matrix_pred(values_ns_allJ[[i]])
+  }
   
   #perf algos
   perf_algos <- compute_perf(res_1_filter, g_on_x)
   
+  rm(res_1)
+  gc()
+  
   #perf J fixed
-  perf_J <- compute_perf_J(res_1, g_on_x) #: plus qu'à faire lui et j'aurai tout 
+  #perf_J <- compute_perf_J(res_1, g_on_x) #: plus qu'à faire lui et j'aurai tout 
+  perf_J <- compute_perf_J(values_bs_allJ, values_ns_allJ, g_on_x)
   
   # missing iterations on the algos
   n_CVM_bs = res_1_filter$n_CVM_bs + n_null
@@ -693,6 +619,7 @@ create_df_measures <- function(n_MC, degree, p_train, n_boot, rhozw, rhouv, case
   n_lepski_ns = res_1_filter$n_lepski_ns + n_null
   n_lepskiboot_bs = res_1_filter$n_lepskiboot_bs + n_null
   n_lepskiboot_ns = res_1_filter$n_lepskiboot_ns + n_null
+  
   
   vect_missing_algos <- c(n_CVM_bs, n_CVM_ns, n_CVMSE_bs, n_CVMSE_ns,
                           n_lepski_bs, n_lepski_ns, n_lepskiboot_bs, n_lepskiboot_ns)
@@ -743,7 +670,9 @@ create_df_measures <- function(n_MC, degree, p_train, n_boot, rhozw, rhouv, case
   df["lepskiboot_bs", col_perf] <- perf_algos$measures_lepski_bs
   df["lepskiboot_ns", col_perf] <- perf_algos$measures_lepski_ns
   
-  return(df)
+  return(list(df_perf = df, for_curves = res_1_filter, 
+              values_bs_allJ = values_bs_allJ,
+              values_ns_allJ = values_ns_allJ))
   
   # return(list(res_filtered = res_1_filter, perf_algos = perf_algos,
   #             n_CVM_bs = n_CVM_bs, n_CVM_ns = n_CVM_ns,
@@ -755,7 +684,7 @@ create_df_measures <- function(n_MC, degree, p_train, n_boot, rhozw, rhouv, case
 }
 
 #### test on a simulation given ####
-n_MC = 2000
+n_MC = 500
 degree = 3
 p_train = 0.5
 n_boot = 100
@@ -772,4 +701,9 @@ n_eval = 100
 g_on_x = g_sim_3(seq(-2, 2, length.out = 100), 2)
 
 
-df <- create_df_measures(n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values,g_on_x)
+res <- create_df_measures(n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values,g_on_x)
+df <- res$df_perf
+for_curves <- res$for_curves
+
+#save(for_curves, file = "for_curves_test")
+df
