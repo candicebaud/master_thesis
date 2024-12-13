@@ -108,17 +108,24 @@ J_opt_data_fixed <- function(simul_data, J_CV_bs, J_CV_ns, p_train, x_evaluation
     J_opt_CVMSE_ns <- 0
   }
   
+  
   rm(sampled_data, Z_train, Z_validation, Y_train, Y_validation, W_train, W_validation)
   gc()
   
   #pour lepski
   bs_bool = 1
   J_max_bs = compute_J_max(W, Z, Y, degree, bs_bool)
+  if(J_max_bs > max(J_CV_bs)){
+    J_max_bs = max(J_CV_bs)
+  }
   I_hat_bs = seq(as.integer(0.1 * (log(J_max_bs)^2)), as.integer(J_max_bs), by = 1) #on commence au moins à 2 parce que 1 c'est pas une bonne solution
   I_hat_bs = sort(I_hat_bs[sapply(I_hat_bs,valid_dim_b_splines, degree)]) #select only the valid dimensions
   
   bs_bool = 0
   J_max_ns = compute_J_max(W, Z, Y, degree, bs_bool)
+  if(J_max_ns > max(J_CV_ns)){
+    J_max_ns = max(J_CV_ns)
+  }
   I_hat_ns = seq(as.integer(0.1 * (log(J_max_ns)^2)), as.integer(J_max_ns), by = 1) #on commence au moins à 2 parce que 1 c'est pas une bonne solution
   I_hat_ns = sort(I_hat_ns[sapply(I_hat_ns,valid_dim_ns, degree)]) #select only the valid dimensions
   
@@ -146,7 +153,9 @@ J_opt_data_fixed <- function(simul_data, J_CV_bs, J_CV_ns, p_train, x_evaluation
     J_opt_lepskiboot_bs <- lepski_bootstrap(I_hat_bs_new, n_boot_lepski, list_gamma_bs, list_M_boot_bs, 
                                             list_g_hat_J_bs, valid_dim_b_splines, x_evaluation, 
                                             W, Z, Y, degree, create_dyadic_P_splines_bs)
-  }
+    
+
+    }
   else if (length(I_hat_bs_new)==1){
     J_opt_lepski_bs <- I_hat_ns_new
     J_opt_lepskiboot_bs <- I_hat_ns_new
@@ -159,11 +168,11 @@ J_opt_data_fixed <- function(simul_data, J_CV_bs, J_CV_ns, p_train, x_evaluation
   if (length(I_hat_ns_new)>1){
     J_opt_lepski_ns <- lepski_chen(I_hat_ns_new, c_0, m_m, list_g_hat_J_ns, W, Z, Y, degree, 
                                    valid_dim_ns, create_dyadic_P_splines_ns)
-    
+
     J_opt_lepskiboot_ns <- lepski_bootstrap(I_hat_ns_new, n_boot_lepski, list_gamma_ns, list_M_boot_ns,
                                             list_g_hat_J_ns, valid_dim_ns, x_evaluation, 
                                             W, Z, Y, degree, create_dyadic_P_splines_ns)
-  }
+    }
   else if (length(I_hat_ns_new)==1){
     J_opt_lepski_ns <- I_hat_ns_new
     J_opt_lepskiboot_ns <- I_hat_ns_new
@@ -184,25 +193,27 @@ J_opt_data_fixed <- function(simul_data, J_CV_bs, J_CV_ns, p_train, x_evaluation
               J_opt_lepskiboot_bs = J_opt_lepskiboot_bs, J_opt_lepskiboot_ns = J_opt_lepskiboot_ns,
               list_gamma_bs = list_gamma_bs, list_gamma_ns = list_gamma_ns,
               list_g_hat_J_bs = list_g_hat_J_bs, list_g_hat_J_ns = list_g_hat_J_ns,
-              W = W , Y = Y, Z = Z))}
+              W = W , Y = Y, Z = Z))
+  }
 
 
-
-J_bs_ <- c(5, 7, 11, 19, 35)
-J_ns_ <- c(3, 5, 9, 17, 33)
-p = 0.5
-x_eval = seq(-2, 2, length.out = 100)
-deg = 3
-n_boot = 10
-simul <- simulate_data_3(c(1000, 0.5, 0.9), g_sim_3, 2)
-
-load("data_2000_rhozw0.9_rhouv0.5_case2_n1000.R")
-
-test <- J_opt_data_fixed(simul, J_bs_, J_ns_, p, x_eval, deg, n_boot)
-
-
-simul_all[[2]]$W
-simul$W
+# 
+# J_bs_ <- c(5, 7, 11, 19, 35)
+# J_ns_ <- c(3, 5, 9, 17, 33)
+# p = 0.5
+# x_eval = seq(-2, 2, length.out = 100)
+# deg = 3
+# n_boot = 10
+# simul <- simulate_data_3(c(1000, 0.5, 0.9), g_sim_3, 2)
+# 
+# #setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/4_final")
+# load("data_2000_rhozw0.9_rhouv0.8_case3_n1000.R")
+# 
+# test <- J_opt_data_fixed(simul_all[[1]], J_bs_, J_ns_, p, x_eval, deg, n_boot)
+# 
+# 
+# simul_all[[2]]$W
+# simul$W
 
 
 
