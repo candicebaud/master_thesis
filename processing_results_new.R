@@ -14,11 +14,11 @@ library(tibble)
 library(xtable)
 library(kableExtra)
 
-setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/3")
+setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/4_final")
 
 #### Load results ####
 #load("opt_5_degree3_ptrain0.5_nboot100_rhozw0.9_rhouv0.5_case2_n1000.R")
-file_list <- list.files(path = "C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/3",
+file_list <- list.files(path = "C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/4_final",
                         pattern = "^opt_.*\\.R$", full.names = FALSE)
 
 all_data <- lapply(file_list, function(filepath) {
@@ -166,16 +166,16 @@ create_list_to_analyze <- function(n_MC, degree, p_train, n_boot, rhozw, rhouv, 
     all_lists$list_J_opt_lepskiboot_ns[n] <- all_data[[simu_name]][[n]]$J_opt_lepskiboot_ns
     all_lists$list_gamma_bs[[n]] <- all_data[[simu_name]][[n]]$list_gamma_bs
     all_lists$list_gamma_ns[[n]] <- all_data[[simu_name]][[n]]$list_gamma_ns
-    all_lists$list_g_hat_J_bs[[n]] <- all_data[[simu_name]][[n]]$list_g_hat_J_bs
-    all_lists$list_g_hat_J_ns[[n]] <- all_data[[simu_name]][[n]]$list_g_hat_J_ns
+    all_lists$list_g_hat_J_bs[[n]] <- all_data[[simu_name]][[n]]$g_hat_J_bs
+    all_lists$list_g_hat_J_ns[[n]] <- all_data[[simu_name]][[n]]$g_hat_J_ns
   }
   
   for (i in 1:5){
     all_lists$list_matrix_g_hat_J_bs[[i]] <- matrix(0, nrow = n_MC, ncol = n_eval)
     all_lists$list_matrix_g_hat_J_ns[[i]] <- matrix(0, nrow = n_MC, ncol = n_eval)
     for (n in 1:n_MC){
-      all_lists$list_matrix_g_hat_J_bs[[i]][n,] <- all_data[[simu_name]][[n]]$list_g_hat_J_bs[[i]]
-      all_lists$list_matrix_g_hat_J_ns[[i]][n, ] <- all_data[[simu_name]][[n]]$list_g_hat_J_ns[[i]]
+      all_lists$list_matrix_g_hat_J_bs[[i]][n,] <- all_data[[simu_name]][[n]]$g_hat_J_bs[[i]][,1]
+      all_lists$list_matrix_g_hat_J_ns[[i]][n,] <- all_data[[simu_name]][[n]]$g_hat_J_ns[[i]][,1]
       }
   }
   
@@ -246,16 +246,16 @@ filter_res <- function(res_to_analyze){
   if (n_CVM_bs>0){
     res_CVM_bs$list_J_opt_CV_M_bs <- res_to_analyze$list_J_opt_CV_M_bs[-zero_indices]
     res_CVM_bs$list_est_values_CV_M_bs <- res_to_analyze$list_est_values_CV_M_bs[-zero_indices,]
-    # res_CVM_bs$matrix_W <- res_to_analyze$matrix_W[-zero_indices,]
-    # res_CVM_bs$matrix_Z <- res_to_analyze$matrix_Z[-zero_indices,]
-    # res_CVM_bs$matrix_Y <- res_to_analyze$matrix_Y[-zero_indices,]
+    res_CVM_bs$matrix_W <- res_to_analyze$matrix_W[-zero_indices,]
+    res_CVM_bs$matrix_Z <- res_to_analyze$matrix_Z[-zero_indices,]
+    res_CVM_bs$matrix_Y <- res_to_analyze$matrix_Y[-zero_indices,]
     }
   else{
     res_CVM_bs$list_J_opt_CV_M_bs <- res_to_analyze$list_J_opt_CV_M_bs
     res_CVM_bs$list_est_values_CV_M_bs <- res_to_analyze$list_est_values_CV_M_bs
-    # res_CVM_bs$matrix_W <- res_to_analyze$matrix_W
-    # res_CVM_bs$matrix_Z <- res_to_analyze$matrix_Z
-    # res_CVM_bs$matrix_Y <- res_to_analyze$matrix_Y
+    res_CVM_bs$matrix_W <- res_to_analyze$matrix_W
+    res_CVM_bs$matrix_Z <- res_to_analyze$matrix_Z
+    res_CVM_bs$matrix_Y <- res_to_analyze$matrix_Y
   }
   
   #CVM ns
@@ -459,13 +459,22 @@ compute_all_perf <- function(mat_g_hat_on_x, g_0_on_x, data_algo){
 
   #M A TESTER
   M_vect <- rep(0, n_MC)
+  #pb : prend bcp de temps
   matrix_Y <- data_algo$matrix_Y
   matrix_Z <- data_algo$matrix_Z
   matrix_W <- data_algo$matrix_W
-  for (n in 1:n_MC){
-    Omega <- create_W(matrix_W[n,])
-    M_vect[n] <- calcul_M_g_hat_test_sample(mat_g_hat_on_x[n,], Omega, n_eval, matrix_Y[n,])
+  # for (n in 1:n_MC){
+  #   Omega <- create_W(matrix_W[n,])
+  #   M_vect[n] <- calcul_M_g_hat_test_sample(mat_g_hat_on_x[n,], Omega, n_eval, matrix_Y[n,])
+  # }
+  for (n in 1:n_MC) {
+    Omega <- create_W(matrix_W[n, ])
+    residual <- matrix_Y[n, ] - mat_g_hat_on_x[n, ]
+    # Use vectorized version of calcul_M_g_hat_test_sample
+    M_vect[n] <- t(residual) %*% Omega %*% residual / (n_eval^2)
+    print(M_vect[n])
   }
+  
   M = mean(M_vect)
   #list(MSE = MSE, var = var, bias = bias, supnorm = sup_norm, M = M)
   return(c(M, sup_norm, MSE, bias, var))
@@ -588,9 +597,13 @@ create_df_measures <- function(n_MC, degree, p_train, n_boot, rhozw, rhouv, case
   missing_iter <- missing_number(n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values)
   n_null = missing_iter$n_null #not even computed
   
+  print("here")
+  
   #algorithms, filter 
   res_1 <- create_list_to_analyze(n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values, simul_all)
   res_1_filter <- filter_res(res_1)
+  
+  print("here")
   
   values_bs_allJ = res_1$list_matrix_g_hat_J_bs
   values_ns_allJ = res_1$list_matrix_g_hat_J_ns
@@ -603,12 +616,17 @@ create_df_measures <- function(n_MC, degree, p_train, n_boot, rhozw, rhouv, case
   #perf algos
   perf_algos <- compute_perf(res_1_filter, g_on_x)
   
+  print("here")
+  
+  
   rm(res_1)
   gc()
   
   #perf J fixed
   #perf_J <- compute_perf_J(res_1, g_on_x) #: plus qu'à faire lui et j'aurai tout 
   perf_J <- compute_perf_J(values_bs_allJ, values_ns_allJ, g_on_x)
+  
+  print("here")
   
   # missing iterations on the algos
   n_CVM_bs = res_1_filter$n_CVM_bs + n_null
@@ -684,13 +702,13 @@ create_df_measures <- function(n_MC, degree, p_train, n_boot, rhozw, rhouv, case
 }
 
 #### test on a simulation given ####
-n_MC = 500
+n_MC = 2000
 degree = 3
 p_train = 0.5
 n_boot = 100
 rhozw = 0.9
-rhouv = 0.5
-case = 2
+rhouv = 0.8
+case = 3
 n_values = 1000
 
 J_bs <- c(5, 7, 11, 19, 35)
@@ -702,8 +720,8 @@ g_on_x = g_sim_3(seq(-2, 2, length.out = 100), 2)
 
 
 res <- create_df_measures(n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values,g_on_x)
-df <- res$df_perf
-for_curves <- res$for_curves
+#df <- res$df_perf
+#for_curves <- res$for_curves
 
 #save(for_curves, file = "for_curves_test")
-df
+#df
