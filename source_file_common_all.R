@@ -68,23 +68,35 @@ create_dyadic_P_splines_bs <- function(x, Z, J, degree){
     print("Error, dimension is not valid")
   }
   else{
-    a = min(Z)
-    b = max(Z)
+    if (n_dyadic == 0){
+      res = bs(x, degree = 3, intercept = TRUE)
+      return(res)
+    }
+    
+    a = 0
+    b = 1
     n_pts = 2^{n_dyadic} +1 
-    knots = create_dyadic_interval(n_dyadic, a, b)[2:2^{n_dyadic}]
+    intvl = create_dyadic_interval(n_dyadic, a, b)
+    if (n_dyadic == 1){
+      prob = intvl[2]
+    }
+    else{
+      prob = intvl[2:2^{n_dyadic}]
+    }
+    knots <- quantile(Z, probs = prob)
     basis <- bs(x, knots = knots, degree = degree, 
                 intercept = TRUE)
     rm(knots, a, b, n_pts)
     gc()
     return(basis) 
-  }}
+  }
+  }
 
-verify_P_is_working <- function(x, knots){
+verify_P_is_working <- function(x, knots, J){
   result <- tryCatch({
-    ns(x, knots = knots, Boundary.knots = c(-2,2), intercept = TRUE) # attempt
-    TRUE       # If successful, return TRUE
+    ns(x, knots = knots, Boundary.knots = c(-2,2), intercept = TRUE)
   }, error = function(e) {
-    FALSE      # If an error occurs, return FALSE
+    matrix(0, nrow = length(x), ncol = J)
   })
   return(result)
 }
@@ -96,19 +108,21 @@ create_dyadic_P_splines_ns <- function(x, Z, J, degree){
     print("Error, dimension is not valid")
   }
   else{
-    a = min(Z)
-    b = max(Z)
-    n_pts = 2^{n_dyadic} - 1 
-    knots = create_dyadic_interval(n_dyadic, a, b)[2:2^{n_dyadic}] #taille 2^{l} - 1
-    bool = verify_P_is_working(x, knots)
-    
-    if (bool == TRUE){
-      return(ns(x, knots = knots, Boundary.knots = c(-2,2), intercept = TRUE))}
-    else{
-      return(matrix(0, nrow = length(x), ncol = J))
+    if (n_dyadic == 0){
+      res <- ns(x, Boundary.knots = c(-2, 2), intercept = TRUE)
+      return(res)
     }
-    
-  }}
+    else{
+      a = 0
+      b = 1
+      n_pts = 2^{n_dyadic} - 1 
+      prob = create_dyadic_interval(n_dyadic, a, b)[2:2^{n_dyadic}] #taille 2^{l} - 1
+      knots <- quantile(Z, probs = prob)
+      res = verify_P_is_working(x, knots, J)
+      return(res)
+      }
+  }
+  }
 
 compute_M_bootstrap <- function(J, W, Z, Y, degree, create_P){
   n = length(Z)
@@ -139,7 +153,7 @@ compute_M_bootstrap <- function(J, W, Z, Y, degree, create_P){
 
 
 valid_dim_b_splines <- function(J, degree){ #attention modifier pour NS
-  if (J-degree <= 1){
+  if (J-degree <= 0){
     return(FALSE)
   }
   else{
@@ -149,7 +163,7 @@ valid_dim_b_splines <- function(J, degree){ #attention modifier pour NS
     }else{return(TRUE)}}}
 
 valid_dim_ns <- function(J, degree){
-  if (J < degree){
+  if (J < 2){
     return(FALSE)
   }
   else{
