@@ -204,12 +204,12 @@ J_opt_data_fixed <- function(simul_data, J_CV_bs, J_CV_ns, p_train, x_evaluation
 # x_eval = seq(-2, 2, length.out = 100)
 # deg = 3
 # n_boot = 10
-# simul <- simulate_data_3(c(1000, 0.5, 0.9), g_sim_3, 2)
-# # 
-# # #setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/4_final")
-# # load("data_2000_rhozw0.9_rhouv0.8_case3_n1000.R")
-# # 
-#  test <- J_opt_data_fixed(simul, J_bs_, J_ns_, p, x_eval, deg, n_boot)
+# # simul <- simulate_data_3(c(1000, 0.5, 0.9), g_sim_3, 2)
+# # # 
+# setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/4_final")
+# load("data_2000_rhozw0.9_rhouv0.8_case3_n1000.R")
+# 
+# test <- J_opt_data_fixed(simul_all[[3]], J_bs_, J_ns_, p, x_eval, deg, n_boot)
 # 
 # 
 # simul_all[[2]]$W

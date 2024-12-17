@@ -24,8 +24,8 @@ data_param = c(n_values, rhouv, rhozw)
 degree = 3
 x_evaluation = seq(-2, 2, length.out = 100)
 n_MC = 2000
-J_bs <- c(5, 7, 11, 19, 35)
-J_ns <- c(3, 5, 9, 17, 33)
+J_bs <- c(4, 5, 7, 11, 19)
+J_ns <- c(2, 3, 5, 9, 17)
 p_train = 0.5
 n_boot = 100
 
