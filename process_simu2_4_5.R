@@ -154,6 +154,9 @@ create_list_to_analyze <- function(simu_est, n_MC, degree, p_train, n_boot, rhoz
   all_lists$matrix_Y <-  simul_all_reshaped$Y
   all_lists$matrix_Z <-  simul_all_reshaped$Z
   
+  all_lists$list_g_hat_Z_bs_J_fixed <- vector("list", length = 5)
+  all_lists$list_g_hat_Z_ns_J_fixed <- vector("list", length = 5)
+  
   for (n in 1:n_MC){
     all_lists$list_J_opt_CV_M_bs[n] <- simu_est[[n]]$J_opt_CV_M_bs
     all_lists$list_J_opt_CV_M_ns[n] <- simu_est[[n]]$J_opt_CV_M_ns
@@ -163,19 +166,22 @@ create_list_to_analyze <- function(simu_est, n_MC, degree, p_train, n_boot, rhoz
     all_lists$list_J_opt_lepski_ns[n] <- simu_est[[n]]$J_opt_lepski_ns
     all_lists$list_J_opt_lepskiboot_bs[n] <- simu_est[[n]]$J_opt_lepskiboot_bs
     all_lists$list_J_opt_lepskiboot_ns[n] <- simu_est[[n]]$J_opt_lepskiboot_ns
-    all_lists$list_gamma_bs[[n]] <- simu_est[[n]]$list_gamma_bs
-    all_lists$list_gamma_ns[[n]] <- simu_est[[n]]$list_gamma_ns
-    all_lists$list_g_hat_J_bs[[n]] <- simu_est[[n]]$list_g_hat_J_bs
-    all_lists$list_g_hat_J_ns[[n]] <- simu_est[[n]]$list_g_hat_J_ns
+    all_lists$list_gamma_bs[[n]] <- simu_est[[n]]$gamma_bs
+    all_lists$list_gamma_ns[[n]] <- simu_est[[n]]$gamma_ns
+    all_lists$list_g_hat_J_bs[[n]] <- simu_est[[n]]$g_hat_J_bs
+    all_lists$list_g_hat_J_ns[[n]] <- simu_est[[n]]$g_hat_J_ns
   }
   
   #save the generated data
   for (i in 1:5){
     all_lists$list_matrix_g_hat_J_bs[[i]] <- matrix(0, nrow = n_MC, ncol = n_eval)
     all_lists$list_matrix_g_hat_J_ns[[i]] <- matrix(0, nrow = n_MC, ncol = n_eval)
+    
+    all_lists$list_g_hat_Z_bs_J_fixed[[i]] <- matrix(0, nrow = n_MC, ncol = 1000)
+    all_lists$list_g_hat_Z_ns_J_fixed[[i]] <- matrix(0, nrow = n_MC, ncol = 1000)
     for (n in 1:n_MC){
-      all_lists$list_matrix_g_hat_J_bs[[i]][n,] <- simu_est[[n]]$list_g_hat_J_bs[[i]][,1]
-      all_lists$list_matrix_g_hat_J_ns[[i]][n,] <- simu_est[[n]]$list_g_hat_J_ns[[i]][,1]
+      all_lists$list_matrix_g_hat_J_bs[[i]][n,] <- simu_est[[n]]$g_hat_J_bs[[i]][,1]
+      all_lists$list_matrix_g_hat_J_ns[[i]][n,] <- simu_est[[n]]$g_hat_J_ns[[i]][,1]
     }
   }
   
@@ -670,6 +676,7 @@ create_df_measures <- function(simu_est, n_MC, degree, p_train, n_boot, rhozw, r
   #missing data 
   missing_iter <- missing_number(simu_est, n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values)
   n_null = missing_iter$n_null #not even computed
+  print(n_null)
   is_null = missing_iter$is_null
   
   #algorithms, filter 
@@ -742,7 +749,8 @@ create_df_measures <- function(simu_est, n_MC, degree, p_train, n_boot, rhozw, r
   df["lepskiboot_bs", col_perf] <- perf_algos$measures_lepski_bs
   df["lepskiboot_ns", col_perf] <- perf_algos$measures_lepski_ns
   
-  return(list(df_perf = df, for_curves = lists_method#, 
+  return(list(df_perf = df, for_curves = lists_method,
+              all_lists = all_lists
               #values_bs_allJ = values_bs_allJ,
               #values_ns_allJ = values_ns_allJ
               ))
@@ -750,19 +758,42 @@ create_df_measures <- function(simu_est, n_MC, degree, p_train, n_boot, rhozw, r
 
 
 #### Analyze results now ####
+J_bs <- c(5, 7, 11, 19, 35)
+J_ns <- c(3, 5, 9, 17, 33)
+
+#refaire pour la simu 2 parce que pb de dimensions
+# n_MC = 2000
+# degree = 3
+# p_train = 0.5
+# n_boot = 100
+# rhozw = 0.9
+# rhouv = 0.5
+# case = 2
+# n_values = 2500
+# 
+# n_eval = 100
+# 
+# g_on_x = g_sim_3(seq(-2, 2, length.out = 100), 2)
+# 
+# simu_name = paste("opt_", n_MC , "_degree", degree, "_ptrain", p_train, "_nboot",
+#                   n_boot, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case,
+#                   "_n", n_values, ".R", sep = "") 
+# simu_est <- get(load(simu_name))
+# 
+# res_2 <- create_df_measures(simu_est, n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values,g_on_x)
+
+
+
 n_MC = 2000
 degree = 3
 p_train = 0.5
 n_boot = 100
 rhozw = 0.9
-rhouv = 0.5
+rhouv = 0.8
 case = 3
 n_values = 1000
 
 n_eval = 100
-
-J_bs <- c(5, 7, 11, 19, 35)
-J_ns <- c(3, 5, 9, 17, 33)
 
 g_on_x = g_sim_3(seq(-2, 2, length.out = 100), 3)
 
@@ -771,6 +802,117 @@ simu_name = paste("opt_", n_MC , "_degree", degree, "_ptrain", p_train, "_nboot"
                   "_n", n_values, ".R", sep = "") 
 simu_est <- get(load(simu_name))
 
-res <- create_df_measures(simu_est, n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values,g_on_x)
-#library(xtable)
-xtable(res$df_perf, caption = simu_name )
+res_4 <- create_df_measures(simu_est, n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values,g_on_x)
+
+
+n_MC = 2000
+degree = 3
+p_train = 0.5
+n_boot = 100
+rhozw = 0.7
+rhouv = 0.8
+case = 3
+n_values = 1000
+
+n_eval = 100
+
+g_on_x = g_sim_3(seq(-2, 2, length.out = 100), 3)
+
+simu_name = paste("opt_", n_MC , "_degree", degree, "_ptrain", p_train, "_nboot",
+                  n_boot, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case,
+                  "_n", n_values, ".R", sep = "") 
+simu_est <- get(load(simu_name))
+
+res_5 <- create_df_measures(simu_est, n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values,g_on_x)
+
+
+
+#### Compute things for M #### 
+compute_things_for_M_J_fixed <- function(all_lists){
+  n_MC = length(all_lists$list_J_opt_CV_M_bs)
+  new_list <- list()
+  new_list$list_g_hat_Z_bs_J_fixed <- all_lists$list_g_hat_Z_bs_J_fixed
+  new_list$list_g_hat_Z_ns_J_fixed <- all_lists$list_g_hat_Z_ns_J_fixed
+  
+  new_list$list_gamma_bs <- all_lists$list_gamma_bs
+  new_list$list_gamma_ns <- all_lists$list_gamma_ns
+  
+  new_list$matrix_Z <- all_lists$matrix_Z
+  new_list$matrix_Y <- all_lists$matrix_Y
+  new_list$matrix_W <- all_lists$matrix_W
+  
+  rm(all_lists)
+  
+  for (i in 1:5){
+    print(i)
+    for (n in 1:n_MC){
+      print(n)
+      #créer base de splines
+      Z_n <- new_list$matrix_Z[n,]
+      P_bs <- create_dyadic_P_splines_bs(Z_n, Z_n, as.numeric(J_bs[i]), 3)
+      P_ns <- create_dyadic_P_splines_ns(Z_n, Z_n, as.numeric(J_ns[i]), 3)
+      
+      #récupérer le gamma et faire le produit matriciel
+      gamma_bs_J <- new_list$list_gamma_bs[[n]][[i]]
+      gamma_ns_J <- new_list$list_gamma_ns[[n]][[i]]
+      
+      #stocker la pred
+      new_list$list_g_hat_Z_bs_J_fixed[[i]][n,] <- P_bs%*%gamma_bs_J
+      new_list$list_g_hat_Z_ns_J_fixed[[i]][n,] <- P_ns%*%gamma_ns_J
+    }
+  }
+  
+  return(new_list)
+}
+
+for_M_res_4_J_fixed <- compute_things_for_M_J_fixed(res_4$all_lists)
+save(for_M_res_4_J_fixed, file = "for_M_res_4_J_fixed")
+
+for_M_res_5_J_fixed <- compute_things_for_M_J_fixed(res_5$all_lists)
+save(for_M_res_5_J_fixed, file = "for_M_res_5_J_fixed")
+
+compute_M <- function(for_M){
+  n_MC = length(for_M$list_gamma_bs)
+  M_bs <- rep(0, 5)
+  M_ns <- rep(0, 5)
+  
+  #compute M omitting when gamma = 0 
+  for (i in 1:5){
+    print(i)
+    residuals <- for_M$matrix_Y - for_M$list_g_hat_Z_bs_J_fixed[[i]]
+    M_vect <- sapply(1:n_MC, function(n) {
+      if (sum(for_M$list_gamma_bs[[n]][[i]])>0){
+        residual <- residuals[n, ]
+        Omega <- create_W(for_M$matrix_W[n,])
+        t(residual) %*% Omega %*% residual / (1000^2)
+      }
+      else{
+        NA
+      }})
+    M_bs[i] = mean(M_vect, na.rm = TRUE)
+    
+    residuals <- for_M$matrix_Y - for_M$list_g_hat_Z_ns_J_fixed[[i]]
+    M_vect <- sapply(1:n_MC, function(n) {
+      if (sum(for_M$list_gamma_ns[[n]][[i]])>0){
+        residual <- residuals[n, ]
+        Omega <- create_W(for_M$matrix_W[n,])
+        t(residual) %*% Omega %*% residual / (1000^2)
+      }
+      else{
+        NA
+      }})
+    M_ns[i] = mean(M_vect, na.rm = TRUE)
+  }
+  
+  return(list(M_bs = M_bs, M_ns = M_ns))
+} #returns the values of M for all J in bs and ns cases 
+
+
+#load("for_M_res_4_J_fixed")
+M_val_res_4 <- compute_M(for_M_res_4_J_fixed)
+save(M_val_res_4, file = "M_val_res_4")
+
+#load("for_M_res_5_J_fixed")
+M_val_res_5 <- compute_M(for_M_res_5_J_fixed)
+save(M_val_res_5, file = "M_val_res_5")
+
