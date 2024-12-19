@@ -747,6 +747,7 @@ simu_name = paste("opt_", n_MC , "_degree", degree, "_ptrain", p_train, "_nboot"
 simu_est <- get(load(simu_name))
 
 res_1 <- create_df_measures(simu_est, n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values,g_on_x)
+#save(res_1, file = "res_1")
 #library(xtable)
 xtable(res_1$df_perf, caption = "Simulation 1" )
 
@@ -774,6 +775,7 @@ simu_name = paste("opt_", n_MC , "_degree", degree, "_ptrain", p_train, "_nboot"
 simu_est <- get(load(simu_name))
 
 res_3 <- create_df_measures(simu_est, n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values,g_on_x)
+save(res_3, file = "res_3")
 #library(xtable)
 xtable(res_3$df_perf, caption = "Simulation 3" )
 
