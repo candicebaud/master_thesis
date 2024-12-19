@@ -13,7 +13,7 @@ library(tibble)
 library(xtable)
 library(kableExtra)
 
-setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/4_final")
+setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/5_final")
 
 #### Import data ####
 # file_list <- list.files(path = "C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/4_final",
@@ -636,7 +636,7 @@ compute_perf_J <- function(g_on_x, all_lists){ #TO DO
 #### Data process all function ####
 create_df_measures <- function(simu_est, n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values, g_on_x){
   #load simulation data 
-  setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/4_final")
+  setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/5_final")
   data_name = paste("data_", n_MC, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_values, ".R" ,sep = "")
   simul_all <- get(load(data_name))
   
@@ -712,8 +712,8 @@ create_df_measures <- function(simu_est, n_MC, degree, p_train, n_boot, rhozw, r
   df["CVMSE_ns", col_perf] <- perf_algos$measures_CVMSE_ns
   df["lepski_bs", col_perf] <- perf_algos$measures_lepski_bs
   df["lepski_ns", col_perf] <- perf_algos$measures_lepski_ns
-  df["lepskiboot_bs", col_perf] <- perf_algos$measures_lepski_bs
-  df["lepskiboot_ns", col_perf] <- perf_algos$measures_lepski_ns
+  df["lepskiboot_bs", col_perf] <- perf_algos$measures_lepskiboot_bs
+  df["lepskiboot_ns", col_perf] <- perf_algos$measures_lepskiboot_ns
   
   return(list(df_perf = df, for_curves = lists_method,
               all_lists = all_lists
@@ -736,8 +736,8 @@ n_values = 1000
 
 n_eval = 100
 
-J_bs <- c(5, 7, 11, 19, 35)
-J_ns <- c(3, 5, 9, 17, 33)
+J_bs <- c(4, 5, 7, 11, 19)
+J_ns <- c(2, 3, 5, 9, 17)
 
 g_on_x = g_sim_3(seq(-2, 2, length.out = 100), 2)
 
@@ -748,7 +748,7 @@ simu_est <- get(load(simu_name))
 
 res_1 <- create_df_measures(simu_est, n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values,g_on_x)
 #library(xtable)
-#xtable(res$df_perf, caption = simu_name )
+xtable(res_1$df_perf, caption = "Simulation 1" )
 
 
 #simulation 3
@@ -763,8 +763,8 @@ n_values = 1000
 
 n_eval = 100
 
-J_bs <- c(5, 7, 11, 19, 35)
-J_ns <- c(3, 5, 9, 17, 33)
+J_bs <- c(4, 5, 7, 11, 19)
+J_ns <- c(2, 3, 5, 9, 17)
 
 g_on_x = g_sim_3(seq(-2, 2, length.out = 100), 3)
 
@@ -775,7 +775,7 @@ simu_est <- get(load(simu_name))
 
 res_3 <- create_df_measures(simu_est, n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values,g_on_x)
 #library(xtable)
-#xtable(res$df_perf, caption = simu_name )
+xtable(res_3$df_perf, caption = "Simulation 3" )
 
 
 #### Compute M for J fixed ####
@@ -870,7 +870,7 @@ compute_M <- function(for_M){
 } #returns the values of M for all J in bs and ns cases 
 
 
-load("for_M_res_1_J_fixed")
+#load("for_M_res_1_J_fixed")
 M_val_res_1 <- compute_M(for_M_res_1_J_fixed)
 save(M_val_res_1, file = "M_val_res_1")
 

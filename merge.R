@@ -1,6 +1,6 @@
 #splitted simulations
 
-setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/4_final/simu_1_files")
+setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/5_final/simu_3_res")
 
 results <- list()
 
@@ -10,7 +10,7 @@ p_train = 0.5
 n_boot = 100
 rhozw = 0.9
 rhouv = 0.5
-case = 2
+case = 3
 n_values = 1000
 
 #J_bs <- c(5, 7, 11, 19, 35)
@@ -36,9 +36,6 @@ for (i in 1:n_MC) {
   }
 }
 
-filename = paste("opt_", n_MC , "_degree", degree, "_ptrain", p_train, "_nboot", n_boot, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_values, ".R" ,sep = "")
+filename = paste("opt_", n_MC , "_degree", degrsee, "_ptrain", p_train, "_nboot", n_boot, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_values, ".R" ,sep = "")
 save(results, file = filename)
 
-for (i in 1:n_MC){
-  print(results[[i]]$J_opt_CV_M_bs)
-}

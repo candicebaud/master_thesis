@@ -13,7 +13,7 @@ library(tibble)
 library(xtable)
 library(kableExtra)
 
-setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/4_final")
+setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/5_final")
 
 #### Import data ####
 # file_list <- list.files(path = "C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/4_final",
@@ -491,7 +491,7 @@ compute_perf <- function(res_filtered, g_0_on_x){
   return(list(measures_CVM_bs = measures_CVM_bs, measures_CVM_ns = measures_CVM_ns,
               measures_CVMSE_bs = measures_CVMSE_bs, measures_CVMSE_ns = measures_CVMSE_ns,
               measures_lepski_bs = measures_lepski_bs, measures_lepski_ns = measures_lepski_ns,
-              measures_lepskiboot_bs = measures_lepskiboot_bs, measures_lepskiboot_ns= measures_lepskiboot_ns))
+              measures_lepskiboot_bs = measures_lepskiboot_bs, measures_lepskiboot_ns = measures_lepskiboot_ns))
   
 }
 
@@ -626,69 +626,6 @@ compute_perf_J <- function(g_on_x, all_lists){ #TO DO
   to_return$avg_perf_33_ns <- compute_all_perf(list_33_ns$mat_g_hat_on_x, 
                                                g_on_x, list_33_ns)
 
-  
-  # to_return <- list()
-  # 
-  # for (i in 1:5){
-  #   matrix_eval <- value_bs_all_J[[i]]
-  #   n_row = nrow(matrix_eval)
-  #   if (n_row > 0){
-  #     avg <- colMeans(matrix_eval)
-  #     matrix_perf <- matrix(0, nrow = n_row, ncol = 5)
-  #     for (n in 1:n_row){
-  #       matrix_perf[n,] <- compute_perf_J_sub(matrix_eval[n,], g_on_x, avg)
-  #     }
-  #     perf <- colMeans(matrix_perf)
-  #   }
-  #   else{
-  #     perf <- rep(999, 5)
-  #   }
-  #   if (i == 1){
-  #     to_return$avg_perf_5_bs <- perf
-  #   }
-  #   if (i == 2){
-  #     to_return$avg_perf_7_bs <- perf
-  #   }
-  #   if (i == 3){
-  #     to_return$avg_perf_11_bs <- perf
-  #   }
-  #   if (i == 4){
-  #     to_return$avg_perf_19_bs <- perf
-  #   }
-  #   if (i == 5){
-  #     to_return$avg_perf_35_bs <- perf
-  #   }}
-  # 
-  # for (i in 1:5){
-  #   matrix_eval <- value_ns_all_J[[i]]
-  #   n_row = nrow(matrix_eval)
-  #   if (n_row > 0){
-  #     avg <- colMeans(matrix_eval)
-  #     matrix_perf <- matrix(0, nrow = n_row, ncol = 5)
-  #     for (n in 1:n_row){
-  #       matrix_perf[n,] <- compute_perf_J_sub(matrix_eval[n,], g_on_x, avg)
-  #     }
-  #     perf <- colMeans(matrix_perf)
-  #   }
-  #   else{
-  #     perf <- rep(999, 5)
-  #   }
-  #   if (i == 1){
-  #     to_return$avg_perf_3_ns <- perf
-  #   }
-  #   if (i == 2){
-  #     to_return$avg_perf_5_ns <- perf
-  #   }
-  #   if (i == 3){
-  #     to_return$avg_perf_9_ns <- perf
-  #   }
-  #   if (i == 4){
-  #     to_return$avg_perf_17_ns <- perf
-  #   }
-  #   if (i == 5){
-  #     to_return$avg_perf_33_ns <- perf
-  #   }}
-  # 
   return(to_return)
   
 }
@@ -696,7 +633,7 @@ compute_perf_J <- function(g_on_x, all_lists){ #TO DO
 #### Data process all function ####
 create_df_measures <- function(simu_est, n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values, g_on_x){
   #load simulation data 
-  setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/4_final")
+  setwd("C:/Users/candi/Desktop/ETUDES/2025 - ENSAE 4A - EPFL3A/pdm/code/simulation_results/5_final")
   data_name = paste("data_", n_MC, "_rhozw" , rhozw,"_rhouv", rhouv , "_case", case, "_n", n_values, ".R" ,sep = "")
   simul_all <- get(load(data_name))
   
@@ -779,8 +716,8 @@ create_df_measures <- function(simu_est, n_MC, degree, p_train, n_boot, rhozw, r
   df["CVMSE_ns", col_perf] <- perf_algos$measures_CVMSE_ns
   df["lepski_bs", col_perf] <- perf_algos$measures_lepski_bs
   df["lepski_ns", col_perf] <- perf_algos$measures_lepski_ns
-  df["lepskiboot_bs", col_perf] <- perf_algos$measures_lepski_bs
-  df["lepskiboot_ns", col_perf] <- perf_algos$measures_lepski_ns
+  df["lepskiboot_bs", col_perf] <- perf_algos$measures_lepskiboot_bs
+  df["lepskiboot_ns", col_perf] <- perf_algos$measures_lepskiboot_ns
   
   return(list(df_perf = df, for_curves = lists_method,
               all_lists = all_lists
@@ -791,8 +728,8 @@ create_df_measures <- function(simu_est, n_MC, degree, p_train, n_boot, rhozw, r
 
 
 #### Analyze results now ####
-J_bs <- c(5, 7, 11, 19, 35)
-J_ns <- c(3, 5, 9, 17, 33)
+J_bs <- c(4, 5, 7, 11, 19)
+J_ns <- c(2, 3, 5, 9, 17)
 
 #refaire pour la simu 2 parce que pb de dimensions
 # n_MC = 2000
@@ -836,14 +773,15 @@ simu_name = paste("opt_", n_MC , "_degree", degree, "_ptrain", p_train, "_nboot"
 simu_est <- get(load(simu_name))
 
 res_4 <- create_df_measures(simu_est, n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values,g_on_x)
-
+xtable(res_4$df_perf, caption = "simulation 4")
+save(res_4, file = "res_4")
 
 n_MC = 2000
 degree = 3
 p_train = 0.5
 n_boot = 100
-rhozw = 0.7
-rhouv = 0.8
+rhozw = 0.8
+rhouv = 0.7
 case = 3
 n_values = 1000
 
@@ -857,7 +795,8 @@ simu_name = paste("opt_", n_MC , "_degree", degree, "_ptrain", p_train, "_nboot"
 simu_est <- get(load(simu_name))
 
 res_5 <- create_df_measures(simu_est, n_MC, degree, p_train, n_boot, rhozw, rhouv, case, n_values,g_on_x)
-
+xtable(res_5$df_perf, caption = "Simulation 5")
+#save(res_5, file = "res_5")
 
 
 #### Compute things for M #### 
@@ -943,7 +882,7 @@ compute_M <- function(for_M){
 
 #load("for_M_res_4_J_fixed")
 M_val_res_4 <- compute_M(for_M_res_4_J_fixed)
-save(M_val_res_4, file = "M_val_res_4")
+save(M_val_res_4, file = "M_val_res_4_J_fixed")
 
 #load("for_M_res_5_J_fixed")
 M_val_res_5 <- compute_M(for_M_res_5_J_fixed)
@@ -1016,7 +955,7 @@ compute_M_methods <- function(for_curves){
 M_methods_res_4 <- compute_M_methods(res_4$for_curves)
 save(M_methods_res_4, file = "M_methods_res_4")
 
-
+load("res_5")
 M_methods_res_5 <- compute_M_methods(res_5$for_curves)
 save(M_methods_res_5, file = "M_methods_res_5")
 
