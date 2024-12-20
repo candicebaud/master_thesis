@@ -96,7 +96,67 @@ plot_methods_true(res_4$for_curves, x_eval, 3)
 x_eval = seq(-2, 2, length.out = 100)
 plot_methods_true(res_5$for_curves, x_eval, 3)
 
+#res_1
+par(mfrow=c(2,2))
+breaks = seq(1, 25, by = 1)
+hist(res_1$all_lists$list_J_opt_CV_M_bs, breaks = breaks, main = "CV M", xlab = "J values", xlim = c(0, 20))
+hist(res_1$all_lists$list_J_opt_CVMSE_bs, breaks = breaks, main = "CV MSE", xlab = "J values",  xlim = c(0, 20))
+hist(res_1$all_lists$list_J_opt_lepski_bs, breaks = breaks, main = "Lepski", xlab = "J values", xlim = c(0, 20))
+hist(res_1$all_lists$list_J_opt_lepskiboot_bs, breaks = breaks, main = "Lepskiboot", xlab = "J values", xlim = c(0, 20))
 
+
+par(mfrow=c(2,2))
+hist(res_1$all_lists$list_J_opt_CV_M_ns, breaks = breaks, main = "CV M", xlab = "J values", xlim = c(0, 20))
+hist(res_1$all_lists$list_J_opt_CVMSE_ns, breaks = breaks, main = "CV MSE", xlab = "J values", xlim = c(0, 20))
+hist(res_1$all_lists$list_J_opt_lepski_ns,breaks = breaks, main = "Lepski", xlab = "J values", xlim = c(0, 20))
+hist(res_1$all_lists$list_J_opt_lepskiboot_ns,breaks = breaks, main = "Lepskiboot", xlab = "J values", xlim = c(0, 20))
+
+#res_3
+par(mfrow=c(2,2))
+breaks = seq(1, 25, by = 1)
+hist(res_3$all_lists$list_J_opt_CV_M_bs, breaks = breaks, main = "CV M", xlab = "J values", xlim = c(0, 20))
+hist(res_3$all_lists$list_J_opt_CVMSE_bs, breaks = breaks, main = "CV MSE", xlab = "J values",  xlim = c(0, 20))
+hist(res_3$all_lists$list_J_opt_lepski_bs, breaks = breaks, main = "Lepski", xlab = "J values", xlim = c(0, 20))
+hist(res_3$all_lists$list_J_opt_lepskiboot_bs, breaks = breaks, main = "Lepskiboot", xlab = "J values", xlim = c(0, 20))
+
+
+par(mfrow=c(2,2))
+hist(res_3$all_lists$list_J_opt_CV_M_ns, breaks = breaks, main = "CV M", xlab = "J values", xlim = c(0, 20))
+hist(res_3$all_lists$list_J_opt_CVMSE_ns, breaks = breaks, main = "CV MSE", xlab = "J values", xlim = c(0, 20))
+hist(res_3$all_lists$list_J_opt_lepski_ns,breaks = breaks, main = "Lepski", xlab = "J values", xlim = c(0, 20))
+hist(res_3$all_lists$list_J_opt_lepskiboot_ns,breaks = breaks, main = "Lepskiboot", xlab = "J values", xlim = c(0, 20))
+
+
+#res_4
+par(mfrow=c(2,2))
+breaks = seq(1, 25, by = 1)
+hist(res_4$all_lists$list_J_opt_CV_M_bs, breaks = breaks, main = "CV M", xlab = "J values", xlim = c(0, 20))
+hist(res_4$all_lists$list_J_opt_CVMSE_bs, breaks = breaks, main = "CV MSE", xlab = "J values",  xlim = c(0, 20))
+hist(res_4$all_lists$list_J_opt_lepski_bs, breaks = breaks, main = "Lepski", xlab = "J values", xlim = c(0, 20))
+hist(res_4$all_lists$list_J_opt_lepskiboot_bs, breaks = breaks, main = "Lepskiboot", xlab = "J values", xlim = c(0, 20))
+
+
+par(mfrow=c(2,2))
+hist(res_4$all_lists$list_J_opt_CV_M_ns, breaks = breaks, main = "CV M", xlab = "J values", xlim = c(0, 20))
+hist(res_4$all_lists$list_J_opt_CVMSE_ns, breaks = breaks, main = "CV MSE", xlab = "J values", xlim = c(0, 20))
+hist(res_4$all_lists$list_J_opt_lepski_ns,breaks = breaks, main = "Lepski", xlab = "J values", xlim = c(0, 20))
+hist(res_4$all_lists$list_J_opt_lepskiboot_ns,breaks = breaks, main = "Lepskiboot", xlab = "J values", xlim = c(0, 20))
+
+
+#res_5
+par(mfrow=c(2,2))
+breaks = seq(1, 25, by = 1)
+hist(res_5$all_lists$list_J_opt_CV_M_bs, breaks = breaks, main = "CV M", xlab = "J values", xlim = c(0, 20))
+hist(res_5$all_lists$list_J_opt_CVMSE_bs, breaks = breaks, main = "CV MSE", xlab = "J values",  xlim = c(0, 20))
+hist(res_5$all_lists$list_J_opt_lepski_bs, breaks = breaks, main = "Lepski", xlab = "J values", xlim = c(0, 20))
+hist(res_5$all_lists$list_J_opt_lepskiboot_bs, breaks = breaks, main = "Lepskiboot", xlab = "J values", xlim = c(0, 20))
+
+
+par(mfrow=c(2,2))
+hist(res_5$all_lists$list_J_opt_CV_M_ns, breaks = breaks, main = "CV M", xlab = "J values", xlim = c(0, 20))
+hist(res_5$all_lists$list_J_opt_CVMSE_ns, breaks = breaks, main = "CV MSE", xlab = "J values", xlim = c(0, 20))
+hist(res_5$all_lists$list_J_opt_lepski_ns,breaks = breaks, main = "Lepski", xlab = "J values", xlim = c(0, 20))
+hist(res_5$all_lists$list_J_opt_lepskiboot_ns,breaks = breaks, main = "Lepskiboot", xlab = "J values", xlim = c(0, 20))
 
 
 
