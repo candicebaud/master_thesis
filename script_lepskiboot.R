@@ -259,3 +259,4 @@ lepski_bootstrap <- function(I_hat, n_boot, list_gamma, list_M_boot, list_g_hat_
 
 
 
+# done
